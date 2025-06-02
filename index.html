@@ -1,0 +1,117 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a//dev/null b/index.html
+index 0000000000000000000000000000000000000000..c1aa4f05ef36a445d5934ffc354eceb8b2a29574 100644
+--- a//dev/null
++++ b/index.html
+@@ -0,0 +1,108 @@
++<!DOCTYPE html>
++<html lang="en">
++<head>
++<meta charset="UTF-8">
++<title>Church Space Calculator</title>
++<style>
++  body { font-family: Arial, sans-serif; margin: 20px; }
++  label { display: block; margin-top: 10px; }
++  .result { margin-top: 20px; white-space: pre; background: #f0f0f0; padding: 10px; }
++</style>
++</head>
++<body>
++<h1>Church Space Calculator</h1>
++
++<label>Adults: <input type="number" id="adults" value="0" min="0"></label>
++<label>Youth: <input type="number" id="youth" value="0" min="0"></label>
++<label>Children: <input type="number" id="children" value="0" min="0"></label>
++<label>Babies: <input type="number" id="babies" value="0" min="0"></label>
++
++<h3>Optional Areas</h3>
++<label><input type="checkbox" id="bathrooms"> Bathrooms</label>
++<label><input type="checkbox" id="offices"> Offices</label>
++<label><input type="checkbox" id="conference"> Conference Rooms</label>
++<label><input type="checkbox" id="coffee"> Coffee Shop</label>
++<label><input type="checkbox" id="merch"> Merch Store</label>
++<label><input type="checkbox" id="storage"> General Storage</label>
++<label><input type="checkbox" id="pantry"> Food Pantry</label>
++<label><input type="checkbox" id="classrooms"> Classrooms</label>
++
++<h3>Space Adjustment</h3>
++<input type="range" id="space" min="-50" max="50" value="0">
++<span id="spaceValue">0%</span>
++
++<br><br>
++<button onclick="calculate()">Calculate</button>
++
++<div class="result" id="result"></div>
++
++<script>
++function calculate() {
++  const adults = parseInt(document.getElementById('adults').value) || 0;
++  const youth = parseInt(document.getElementById('youth').value) || 0;
++  const children = parseInt(document.getElementById('children').value) || 0;
++  const babies = parseInt(document.getElementById('babies').value) || 0;
++
++  const slider = parseInt(document.getElementById('space').value) || 0;
++  const adj = 1 + slider / 100;
++
++  let result = '';
++
++  const sanctuary = adults * 20 * adj;
++  result += `Sanctuary: ${sanctuary.toFixed(2)} sq ft\n`;
++
++  const youthSpace = youth * 10 * adj;
++  result += `Youth: ${youthSpace.toFixed(2)} sq ft\n`;
++
++  const childSpace = children * 5 * adj;
++  result += `Children: ${childSpace.toFixed(2)} sq ft\n`;
++
++  const babySpace = babies * 1 * adj;
++  result += `Nursery: ${babySpace.toFixed(2)} sq ft\n`;
++
++  let extra = 0;
++  if (document.getElementById('bathrooms').checked) {
++    extra += 300 * adj;
++    result += `Bathrooms: ${(300 * adj).toFixed(2)} sq ft\n`;
++  }
++  if (document.getElementById('offices').checked) {
++    extra += 200 * adj;
++    result += `Offices: ${(200 * adj).toFixed(2)} sq ft\n`;
++  }
++  if (document.getElementById('conference').checked) {
++    extra += 400 * adj;
++    result += `Conference Rooms: ${(400 * adj).toFixed(2)} sq ft\n`;
++  }
++  if (document.getElementById('coffee').checked) {
++    extra += 300 * adj;
++    result += `Coffee Shop: ${(300 * adj).toFixed(2)} sq ft\n`;
++  }
++  if (document.getElementById('merch').checked) {
++    extra += 150 * adj;
++    result += `Merch Store: ${(150 * adj).toFixed(2)} sq ft\n`;
++  }
++  if (document.getElementById('storage').checked) {
++    extra += 200 * adj;
++    result += `General Storage: ${(200 * adj).toFixed(2)} sq ft\n`;
++  }
++  if (document.getElementById('pantry').checked) {
++    extra += 300 * adj;
++    result += `Food Pantry: ${(300 * adj).toFixed(2)} sq ft\n`;
++  }
++  if (document.getElementById('classrooms').checked) {
++    extra += 500 * adj;
++    result += `Classrooms: ${(500 * adj).toFixed(2)} sq ft\n`;
++  }
++
++  const total = sanctuary + youthSpace + childSpace + babySpace + extra;
++  result += `Total: ${total.toFixed(2)} sq ft`;
++
++  document.getElementById('result').textContent = result;
++}
++
++document.getElementById('space').addEventListener('input', function() {
++  document.getElementById('spaceValue').textContent = this.value + '%';
++});
++</script>
++</body>
++</html>
+ 
+EOF
+)
