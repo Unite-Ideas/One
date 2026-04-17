@@ -158,7 +158,8 @@ module ChurchTools
       input.first.to_s.split(',').map { |s| s.strip.upcase }.reject(&:empty?).uniq
     end
 
-    def find_labeled_targets(entities, target_labels, out = [])
+    def find_labeled_targets(entities, target_labels, out = nil)
+      out ||= []
       items = entities.grep(Sketchup::Group) + entities.grep(Sketchup::ComponentInstance)
       items.each do |inst|
         nm = safe_name(inst).strip.upcase
@@ -187,7 +188,8 @@ module ChurchTools
       [chair_root]
     end
 
-    def all_instances_in_entities(entities, out = [])
+    def all_instances_in_entities(entities, out = nil)
+      out ||= []
       items = entities.grep(Sketchup::Group) + entities.grep(Sketchup::ComponentInstance)
       items.each do |inst|
         out << inst
