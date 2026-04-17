@@ -7,7 +7,7 @@ A starter extension is included at:
 ## What it does
 
 - Uses currently selected seat/back **groups or components** inside one opened chair.
-- Lets you enter a comma-separated palette of model material names.
+- Shows a color-picker dialog (2/3/4 colors) and builds tinted fabric variants from your picks.
 - Applies one random palette material to matching target parts across chair instances.
 - Keeps changes undoable in one SketchUp operation.
 
@@ -22,7 +22,7 @@ To get reliable matching in nested models like `CHAIRS > SECTION > ROW > CHAIR >
 1. Keep each chair as an instance copy (group copy or component instance), not exploded unique geometry.
 2. Name repeated part containers consistently (e.g., `Back`, `Seat`, `Arm Left`, `Arm Right`).
 3. Select containers (groups/components), not loose faces, when running the tool.
-4. Paint sample fabric on a representative chair part first; tool remaps those source materials.
+4. Paint sample fabric/texture on a representative chair part first; the tool colorizes that texture image with your picked colors.
 
 ## Install (manual)
 
@@ -34,4 +34,4 @@ To get reliable matching in nested models like `CHAIRS > SECTION > ROW > CHAIR >
 
 - Matching is path/structure-based; if chairs are modeled with very different internal structure, some parts can be skipped.
 - If many chair parts share identical unnamed structure, add names to improve match reliability.
-- Very large models can take noticeable time because target instances are made unique before recoloring.
+- Very large models can take noticeable time because target instances are made unique and textured variants are generated before recoloring.
