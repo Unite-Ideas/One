@@ -165,9 +165,12 @@ module ChurchTools
         nm = safe_name(inst).strip.upcase
         dn = safe_def_name(inst).strip.upcase
 
-        out << inst if target_labels.include?(nm) || target_labels.include?(dn)
-
-        find_labeled_targets(inst.definition.entities, target_labels, out)
+        if target_labels.include?(nm) || target_labels.include?(dn)
+          out << inst
+        else
+          inst.make_unique
+          find_labeled_targets(inst.definition.entities, target_labels, out)
+        end
       end
       out
     end
