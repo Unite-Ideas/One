@@ -66,17 +66,30 @@ module ChurchTools
       debug_log(model, chair_root, target_labels, chair_instances, settings)
       debug_variant_summary(variants, settings[:colors].size)
 
-      color_plan = build_color_plan(chair_instances.size, settings[:colors].size)
+      seed = settings[:seed] || Random.new_seed
+      puts("[#{PLUGIN_NAME}] Random seed: #{seed}  (pass this as the seed value to reproduce this layout)")
+      color_plan = build_color_plan(chair_instances.size, settings[:colors].size, seed)
 
       model.start_operation(PLUGIN_NAME, true)
       changed = 0
       color_usage = Hash.new(0)
 
       begin
+        # PHASE 1: Deep make_unique pass over every chair.
+        # SketchUp's make_unique is shallow — it only forks the immediate definition.
+        # We must recursively make_unique all nested groups/components inside each chair
+        # BEFORE touching any materials, otherwise chairs that haven't been processed yet
+        # still share sub-definitions with chairs that have, and the last color written wins.
+        chair_instances.each do |chair_instance|
+          next if chair_instance.deleted?
+          deep_make_unique(chair_instance)
+        end
+
+        # PHASE 2: Now that every chair and all its children are fully unique,
+        # assign colors independently.
         chair_instances.each_with_index do |chair_instance, i|
           next if chair_instance.deleted?
 
-          chair_instance.make_unique
           targets = find_labeled_targets(chair_instance.definition.entities, target_labels)
           next if targets.empty?
 
@@ -84,7 +97,7 @@ module ChurchTools
           color_usage[color_index] += 1
           targets.each do |target|
             chosen_variant = variants[color_index % variants.length]
-            recolor_target_instance(target, source_materials, chosen_variant)
+            apply_material_to_target(target, source_materials, chosen_variant)
             changed += 1
           end
         end
@@ -171,29 +184,79 @@ module ChurchTools
       out
     end
 
+    # Search for chair instances by finding the broadest organizer group that
+    # still makes sense — i.e. the outermost ancestor in the active_path whose
+    # name/def suggests it is the "CHAIRS" container (or a section/row of them).
+    # We walk the active_path from outermost to innermost and take the last
+    # ancestor whose entities contain chairs, so we always get the widest net.
     def find_candidate_chair_instances(model, chair_root, target_labels)
-      all = all_instances_in_entities(model.entities)
+      active_path = model.active_path || []
 
-      by_name_and_label = all.select do |inst|
-        chairish = [safe_name(inst), safe_def_name(inst)].join(' ').downcase.include?('chair')
-        chairish && contains_target_label?(inst.definition.entities, target_labels)
+      # Log every ancestor so we can see the full path in the console
+      active_path.each_with_index do |inst, i|
+        puts("[#{PLUGIN_NAME}] active_path[#{i}]: '#{safe_name(inst)}' / '#{safe_def_name(inst)}'")
       end
 
-      return by_name_and_label.uniq unless by_name_and_label.empty?
+      # Walk active_path outermost→innermost and collect ALL ancestors whose
+      # entities contain at least one chair with the target labels.
+      # We want the outermost (first) hit — that gives us the widest search scope.
+      best = nil
+      active_path.each do |inst|
+        next unless inst.respond_to?(:definition)
+        lbl = "#{safe_name(inst)}/#{safe_def_name(inst)}"
+        candidates = collect_chair_instances_shallow(inst.definition.entities, target_labels, depth: 0)
+        puts("[#{PLUGIN_NAME}] Checking ancestor '#{lbl}': #{candidates.size} chair(s)")
+        if best.nil? && !candidates.empty?
+          best = [lbl, candidates]
+        end
+      end
 
-      by_label_only = all.select { |inst| contains_target_label?(inst.definition.entities, target_labels) }
-      return by_label_only.uniq unless by_label_only.empty?
+      if best
+        puts("[#{PLUGIN_NAME}] Using outermost ancestor with chairs: '#{best[0]}' → #{best[1].size} chair(s)")
+        return best[1]
+      end
 
+      # Fallback: try model.active_entities, then model.entities
+      [
+        ['active_entities', model.active_entities],
+        ['model.entities', model.entities]
+      ].each do |lbl, entities|
+        candidates = collect_chair_instances_shallow(entities, target_labels, depth: 0)
+        unless candidates.empty?
+          puts("[#{PLUGIN_NAME}] Found #{candidates.size} chair(s) in #{lbl}")
+          return candidates
+        end
+      end
+
+      puts("[#{PLUGIN_NAME}] All search roots exhausted; falling back to chair_root.")
       [chair_root]
     end
 
-    def all_instances_in_entities(entities, out = [])
+    # Traverse into Groups only (organizer layers like CHAIRS / CENTER SECTION / ROW 1).
+    # When we find a ComponentInstance whose name/def includes 'chair' and contains
+    # the target labels, collect it as-is — do NOT recurse into its definition,
+    # because all chairs share that same definition and recursing would yield
+    # duplicate references to the same Ruby objects.
+    def collect_chair_instances_shallow(entities, target_labels, depth:)
+      out = []
       items = entities.grep(Sketchup::Group) + entities.grep(Sketchup::ComponentInstance)
+
       items.each do |inst|
-        out << inst
-        all_instances_in_entities(inst.definition.entities, out)
+        name_combined = [safe_name(inst), safe_def_name(inst)].join(' ').downcase
+
+        if name_combined.include?('chair') && contains_target_label?(inst.definition.entities, target_labels)
+          # This is a chair instance — collect it, do not recurse inside
+          out << inst
+        elsif inst.is_a?(Sketchup::Group) && depth < 6
+          # This is an organizer group (CHAIRS, CENTER SECTION, ROW 1, etc.)
+          # Safe to recurse because Groups have unique entity collections
+          out.concat(collect_chair_instances_shallow(inst.definition.entities, target_labels, depth: depth + 1))
+        end
+        # ComponentInstances that are NOT chairs are skipped entirely —
+        # recursing into them would re-visit the shared definition
       end
-      out
+
+      out.uniq
     end
 
     def contains_target_label?(entities, target_labels)
@@ -205,12 +268,17 @@ module ChurchTools
       end
     end
 
-    def build_color_plan(chair_count, color_count)
-      raw = Array.new(chair_count) { |idx| idx % color_count }
-      raw.shuffle(random: Random.new)
+    # Assign a color index to each chair using a seeded RNG.
+    # Each chair independently draws a random color rather than shuffling a
+    # balanced deck — this prevents rows of the same size from producing
+    # mirror-image patterns, which happened because balanced shuffles of the
+    # same deck size tend to rhyme visually.
+    # The seed is logged to the console so a pleasing result can be reproduced
+    # by entering the same seed value in the settings dialog.
+    def build_color_plan(chair_count, color_count, seed)
+      rng = Random.new(seed)
+      Array.new(chair_count) { rng.rand(color_count) }
     end
-
-
 
     def debug_variant_summary(variants, expected_count)
       puts("[#{PLUGIN_NAME}] Variant count generated: #{variants.length}, expected=#{expected_count}")
@@ -292,6 +360,14 @@ module ChurchTools
             <div class="help">When "both" is selected, each chair gets one random color and both parts match each other.</div>
           </div>
 
+          <div class="section">
+            <h3>Random seed <span class="help">(optional)</span></h3>
+            <div class="color-row">
+              <input type="number" id="seedInput" placeholder="leave blank for random" style="width:200px;padding:4px;">
+            </div>
+            <div class="help">The seed used is always logged to the Ruby Console. Enter it here to reproduce a previous layout exactly.</div>
+          </div>
+
           <button onclick="submitSettings()">Apply</button>
           <button onclick="sketchup.cancel()" style="margin-left:8px;">Cancel</button>
 
@@ -316,10 +392,12 @@ module ChurchTools
             }
 
             function submitSettings() {
+              const rawSeed = document.getElementById('seedInput').value.trim();
               const payload = {
                 colors: Array.from(document.querySelectorAll('#colors input[type="color"]')).map(i => i.value),
                 material_mode: document.querySelector('input[name="materialMode"]:checked').value,
-                target_mode: document.querySelector('input[name="targetMode"]:checked').value
+                target_mode: document.querySelector('input[name="targetMode"]:checked').value,
+                seed: rawSeed === '' ? null : parseInt(rawSeed, 10)
               };
               sketchup.apply(JSON.stringify(payload));
             }
@@ -357,9 +435,10 @@ module ChurchTools
         'Number of colors (2-4):',
         'Hex colors comma-separated (#ff0000,#00ff00):',
         'Material mode (colorize or solid):',
-        'Target mode (selected or both):'
+        'Target mode (selected or both):',
+        'Seed (leave 0 for random):',
       ]
-      values = ['2', '#8d3f3f, #3f5f8d', 'colorize', 'selected']
+      values = ['2', '#8d3f3f, #3f5f8d', 'colorize', 'selected', '0']
       input = UI.inputbox(prompts, values, 'Choose random fabric settings')
       return nil unless input
 
@@ -376,10 +455,14 @@ module ChurchTools
       target_mode = input[3].to_s.strip.downcase
       target_mode = 'selected' unless %w[selected both].include?(target_mode)
 
+      raw_seed = input[4].to_i
+      seed = raw_seed > 0 ? raw_seed : nil
+
       {
         colors: colors.first(count),
         material_mode: mode,
-        target_mode: target_mode
+        target_mode: target_mode,
+        seed: seed
       }
     end
 
@@ -393,10 +476,14 @@ module ChurchTools
       target_mode = payload['target_mode'].to_s
       target_mode = 'selected' unless %w[selected both].include?(target_mode)
 
+      raw_seed = payload['seed']
+      seed = raw_seed.is_a?(Integer) && raw_seed > 0 ? raw_seed : nil
+
       {
         colors: colors,
         material_mode: material_mode,
-        target_mode: target_mode
+        target_mode: target_mode,
+        seed: seed
       }
     end
 
@@ -440,7 +527,10 @@ module ChurchTools
         begin
           copy_texture(source, mat)
           raise 'Texture copy failed.' unless mat.texture
-          apply_colorize_properties(mat, color)
+          # Set the color tint directly. SketchUp will display the texture
+          # with this hue overlay (materialType becomes 2 = colorized texture).
+          # Do NOT bake — baking unreliably resets the color to white.
+          mat.color = color
         rescue StandardError => e
           puts("[#{PLUGIN_NAME}] Texture colorize fallback for '#{source.display_name}': #{e.message}")
           mat.color = color
@@ -455,7 +545,6 @@ module ChurchTools
       puts("[#{PLUGIN_NAME}] Failed to create variant '#{source.display_name}' #{hex}: #{e.message}")
       nil
     end
-
 
     def copy_texture(source, destination)
       texture = source.texture
@@ -473,15 +562,21 @@ module ChurchTools
       end
     end
 
-    def apply_colorize_properties(material, color)
-      # For textured materials, setting color turns the texture into a colorized texture.
-      # We intentionally avoid forcing colorize_type because that can preserve previous
-      # deltas from source materials in some model/material states.
-      material.color = color
+    # Recursively make_unique an instance and all nested groups/components.
+    # Must be called on every chair BEFORE any material assignment so that
+    # no two chairs share any sub-definition when colors are applied.
+    def deep_make_unique(instance)
+      return unless instance.respond_to?(:make_unique) && instance.respond_to?(:definition)
+      instance.make_unique
+      items = instance.definition.entities.grep(Sketchup::Group) +
+              instance.definition.entities.grep(Sketchup::ComponentInstance)
+      items.each { |child| deep_make_unique(child) }
     end
 
-    def recolor_target_instance(instance, source_materials, variant_material)
-      instance.make_unique
+    # Apply a material to a target instance and all faces inside it.
+    # By the time this is called, deep_make_unique has already been run so
+    # no make_unique calls are needed here.
+    def apply_material_to_target(instance, source_materials, variant_material)
       instance.material = variant_material if source_materials.include?(instance.material)
       replace_materials(instance.definition.entities, source_materials, variant_material)
     end
@@ -494,7 +589,6 @@ module ChurchTools
 
       nested = entities.grep(Sketchup::Group) + entities.grep(Sketchup::ComponentInstance)
       nested.each do |inst|
-        inst.make_unique
         inst.material = variant_material if source_materials.include?(inst.material)
         replace_materials(inst.definition.entities, source_materials, variant_material)
       end
