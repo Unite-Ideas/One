@@ -208,8 +208,7 @@ module ChurchTools
     end
 
     def build_color_plan(chair_count, color_count)
-      raw = Array.new(chair_count) { |idx| idx % color_count }
-      raw.shuffle(random: Random.new)
+      Array.new(chair_count) { Random.new.rand(color_count) }
     end
 
 
