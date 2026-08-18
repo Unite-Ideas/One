@@ -106,6 +106,22 @@
   .rec ul li{margin:4px 0}
   .rec .warn{margin:-2px 14px 11px 40px;color:#ffb4ab;font-size:12.5px;font-weight:600;
     background:#2a1416;border:1px solid #7a2b2b;border-radius:7px;padding:7px 10px}
+  .rec .info{margin:-2px 14px 11px 40px;font-size:12.5px;font-weight:600;
+    border-radius:7px;padding:7px 10px}
+  .rec .info.stack{background:#0f2416;border:1px solid #1f6b3f;color:#8fe3b0}
+  .rec .info.cuff{background:#101f2e;border:1px solid #24506e;color:#9ecbff}
+  .alerts{margin-bottom:12px;display:flex;flex-direction:column;gap:6px}
+  .alert{border-radius:8px;padding:8px 11px;font-size:12.5px;font-weight:600}
+  .alert.run{background:#2a2410;border:1px solid #6b5a1e;color:#f0d385}
+  .alert.tier{background:#101f2e;border:1px solid #24506e;color:#9ecbff}
+  .steals{margin-top:14px;border-top:1px solid var(--line);padding-top:11px}
+  .steals h3{font:700 12px "Archivo",sans-serif;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--dim);margin:0 0 7px}
+  .stealrow{display:flex;justify-content:space-between;align-items:center;
+    font-size:12.5px;padding:4px 0;border-bottom:1px solid var(--line)}
+  .stealrow:last-child{border-bottom:none}
+  .stealrow .v{color:var(--turf);font-weight:700}
+  .stealrow small{color:var(--faint)}
   .rec .btns{display:flex;gap:9px;padding:0 14px 14px}
   .rec .btns button{flex:1;padding:9px;font-size:13.5px}
   .empty{color:var(--dim);font-size:13.5px;text-align:center;padding:20px 0}
@@ -250,7 +266,9 @@
   <div>
     <div class="card">
       <h2>⭐ Who should I pick?</h2>
+      <div class="alerts" id="alerts"></div>
       <div id="recs"></div>
+      <div id="steals"></div>
     </div>
     <div class="card">
       <h2>🏈 My team</h2>
@@ -511,6 +529,60 @@ function resetDraft(){
 function toast(m){const t=document.getElementById('toast');t.textContent=m;
   t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1500);}
 
+// ---- draft intel: runs, tier breaks, steals, stacks, handcuffs ----
+function draftAlerts(){
+  const drafted=new Set(ST.drafted);
+  const avail=BOARD.filter(p=>!drafted.has(p.id));
+  const alerts=[];
+  // positional run in the last several picks
+  const recent=ST.drafted.slice(-6).map(id=>BY_ID[id]).filter(Boolean);
+  const rc={}; recent.forEach(p=>rc[p.pos]=(rc[p.pos]||0)+1);
+  ["RB","WR","QB","TE"].forEach(pos=>{
+    if((rc[pos]||0)>=3) alerts.push({cls:"run",
+      txt:`🏃 Run on ${POSFULL[pos]}s — ${rc[pos]} taken in the last ${recent.length} picks. Get ahead of it if you need one.`});
+  });
+  // genuine value cliff: only 1–2 quality players left before a steep drop
+  ["QB","RB","WR","TE"].forEach(pos=>{
+    const ps=avail.filter(p=>p.pos===pos).sort((a,b)=>b.vbd-a.vbd).slice(0,6);
+    for(let i=1;i<ps.length;i++){
+      const drop=ps[i-1].vbd-ps[i].vbd;
+      if(drop>=25 && i<=2){                 // steep fall after just 1–2 players
+        const names=ps.slice(0,i).map(p=>p.name).join(", ");
+        alerts.push({cls:"tier",
+          txt:`🔔 Only ${i} top ${POSFULL[pos]}${i>1?"s":""} left before a big drop-off: ${names}. Grab one now, or accept a clear step down.`});
+        break;
+      }
+    }
+  });
+  return alerts;
+}
+function stealsBoard(){
+  const cur=currentOverall(), drafted=new Set(ST.drafted);
+  return BOARD.filter(p=>!drafted.has(p.id) && p.adp!=null && (cur-p.adp)>=10
+        && ["QB","RB","WR","TE"].includes(p.pos))
+    .sort((a,b)=>b.vbd-a.vbd).slice(0,4)
+    .map(p=>({p, fell:Math.round(cur-p.adp)}));
+}
+// Correlation (stack) and injury-insurance (handcuff) notes vs YOUR roster.
+function stackHandcuff(p){
+  const notes=[]; if(!p.team||p.team==="FA") return notes;
+  const mine=ST.mine.map(id=>BY_ID[id]).filter(Boolean);
+  const last=n=>n.split(" ").slice(-1)[0];
+  if(p.pos==="WR"||p.pos==="TE"){
+    const qb=mine.find(q=>q.pos==="QB"&&q.team===p.team);
+    if(qb) notes.push({type:"stack",txt:`🔗 Stacks with your QB ${qb.name} — when ${last(qb.name)} throws him a TD, you score on both.`});
+  }
+  if(p.pos==="QB"){
+    const rec=mine.find(q=>(q.pos==="WR"||q.pos==="TE")&&q.team===p.team);
+    if(rec) notes.push({type:"stack",txt:`🔗 Stacks with your ${rec.pos} ${rec.name} — correlated upside on big games.`});
+  }
+  if(p.pos==="RB"){
+    const rb=mine.find(q=>q.pos==="RB"&&q.team===p.team);
+    if(rb) notes.push({type:"cuff",txt:`🛡️ Handcuff for your RB ${rb.name} — if ${last(rb.name)} gets hurt, ${last(p.name)} inherits the workload.`});
+  }
+  return notes;
+}
+
 // ---- bye-week analysis ----
 // Does drafting this candidate collide with a player you already have at the
 // SAME position on the SAME bye week? (the pileup that actually loses you a week)
@@ -643,6 +715,11 @@ function render(){
     clk.innerHTML=`<div class="big">Pick #${cur} on the clock</div><small>${n!=null?('your turn in '+n+' picks'):'—'}</small>`;
   }
 
+  // draft alerts (runs, tier breaks)
+  const al=document.getElementById('alerts');
+  const alerts=draftAlerts();
+  al.innerHTML=alerts.map(a=>`<div class="alert ${a.cls}">${a.txt}</div>`).join('');
+
   // recommendations
   const rc=document.getElementById('recs');
   const recs=recommend(6);
@@ -651,6 +728,8 @@ function render(){
     const p=s.p, tag=tagFor(p,s.drop,cur), why=explain(p,s.need,s.drop,cur);
     const clash=candidateByeClash(p);
     const warn = clash.length ? `<div class="warn">⚠️ Bye clash — he's off in Week ${p.bye}, the same week as your ${clash.map(c=>c.pos+' '+c.name).join(' and ')}. You'd have ${clash.length+1} ${p.pos}s all benched that week.</div>` : '';
+    const notes = stackHandcuff(p);
+    const infoHtml = notes.map(n=>`<div class="info ${n.type}">${n.txt}</div>`).join('');
     return `<div class="rec ${i===0?'top':''}">
       <div class="head">
         <div class="rank">${i+1}</div>
@@ -661,13 +740,20 @@ function render(){
         <span class="tag ${tag.key}">${tag.text}</span>
       </div>
       <ul>${why.map(x=>`<li>${x}</li>`).join('')}</ul>
-      ${warn}
+      ${warn}${infoHtml}
       <div class="btns">
         <button class="btn-me" onclick="draftPlayer('${p.id}',true)">✅ Draft to my team</button>
         <button class="btn-off" onclick="draftPlayer('${p.id}',false)">Someone else took him</button>
       </div>
     </div>`;
   }).join('');
+
+  // steals board (players who fell well past their ADP)
+  const st=document.getElementById('steals');
+  const steals=stealsBoard();
+  st.innerHTML = steals.length ? '<h3>💰 Steals on the board</h3>'+steals.map(s=>`
+    <div class="stealrow"><span><span class="pos ${s.p.pos}" title="${POSFULL[s.p.pos]}">${s.p.pos}</span> ${s.p.name}
+      <small>fell ~${s.fell} past ADP</small></span><span class="v">+${Math.round(s.p.vbd)}</span></div>`).join('') : '';
 
   // my team — starter slots
   const counts=rosterCounts();
