@@ -20,6 +20,7 @@ from typing import Optional
 
 from .db import Database
 from .draft import DraftState, recommend
+from .explain import plain_reason, pos_full
 from .league import LeagueConfig
 from .namematch import find
 from .scoring import ScoringSystem
@@ -54,6 +55,7 @@ def _state_payload(db: Database, my_slot: int) -> dict:
         "board": [
             {
                 "id": p.player_id, "name": p.name, "pos": p.position,
+                "pos_full": pos_full(p.position),
                 "team": p.team, "bye": p.bye_week, "pts": p.proj_points,
                 "vbd": p.vbd, "adp": p.adp, "pos_rank": p.pos_rank,
                 "tier": p.tier, "rank": p.overall_rank,
@@ -64,15 +66,29 @@ def _state_payload(db: Database, my_slot: int) -> dict:
         ],
         "roster": [
             {"name": by_id[pid].name, "pos": by_id[pid].position,
+             "pos_full": pos_full(by_id[pid].position),
              "pts": by_id[pid].proj_points, "bye": by_id[pid].bye_week}
             for pid in state.my_player_ids if pid in by_id
         ],
         "recommendations": [
-            {"name": s.player.name, "pos": s.player.position,
-             "vbd": s.player.vbd, "reason": s.reason, "score": s.score,
-             "id": s.player.player_id}
+            _rec_payload(s, state.current_overall)
             for s in recs
         ],
+    }
+
+
+def _rec_payload(s, current_overall: int) -> dict:
+    friendly = plain_reason(s.player, s.need, s.dropoff, current_overall)
+    return {
+        "name": s.player.name,
+        "pos": s.player.position,
+        "pos_full": friendly["pos_full"],
+        "vbd": s.player.vbd,
+        "tag": friendly["tag"],
+        "sentences": friendly["sentences"],
+        "reason": s.reason,          # keep terse version for reference
+        "score": s.score,
+        "id": s.player.player_id,
     }
 
 
