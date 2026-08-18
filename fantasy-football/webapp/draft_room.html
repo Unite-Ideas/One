@@ -147,6 +147,10 @@
 <header>
   <div class="brand">Draft <span class="b">War Room</span></div>
   <div class="fmt" id="fmt">—</div>
+  <div class="slotwrap" title="How many teams are in your league (including you). Change it live if someone no-shows or brings a friend — every player's Value, the tiers, and the timing recalculate instantly.">
+    <label for="teams">Teams</label>
+    <input id="teams" type="number" min="4" max="20" value="13" inputmode="numeric">
+  </div>
   <div class="slotwrap" title="Your position in the draft order (1 = you pick first). Set it when you find out — it sharpens the timing advice.">
     <label for="slot">My spot</label>
     <input id="slot" type="number" min="1" value="1" inputmode="numeric">
@@ -229,7 +233,7 @@
 const DATA = JSON.parse(document.getElementById('data').textContent);
 const BOARD = DATA.board;
 const BY_ID = {}; BOARD.forEach(p=>BY_ID[p.id]=p);
-const TEAMS = DATA.meta.teams || 13;
+let TEAMS = DATA.meta.teams || 13;   // live-adjustable in the UI
 
 // ---- league / model constants (mirror the Python engine) ----
 const STARTERS = {QB:1,RB:2,WR:2,TE:1,K:1,DEF:1};
@@ -239,6 +243,7 @@ const CAPS = {QB:3,RB:8,WR:8,TE:3,K:1,DEF:2};
 const DEPTH = {QB:1,RB:3,WR:3,TE:0,K:0,DEF:0};
 const NEED_BONUS = {"must-fill":60,"depth":20,"luxury":0};
 const SCARCITY_W = 0.5;
+const FLEX_WEIGHTS = {RB:0.45, WR:0.45, TE:0.10};  // share of the flex slot
 const POSFULL = {QB:"Quarterback",RB:"Running Back",WR:"Wide Receiver",TE:"Tight End",K:"Kicker",DEF:"Defense / Special Teams"};
 const TEAM_NAMES = {
   ARI:"Arizona Cardinals", ATL:"Atlanta Falcons", BAL:"Baltimore Ravens",
@@ -263,6 +268,48 @@ function save(){ localStorage.setItem(KEY, JSON.stringify(ST)); }
 ST.drafted = ST.drafted || [];   // ids in pick order
 ST.mine    = ST.mine    || [];   // ids you drafted
 if(ST.slot) document.getElementById('slot').value = ST.slot;
+if(ST.teams) TEAMS = ST.teams;
+document.getElementById('teams').value = TEAMS;
+
+// ---- live valuation engine (mirrors valuation.py; reruns when team count changes) ----
+function median(a){ if(!a.length)return 0; const s=[...a].sort((x,y)=>x-y); const m=Math.floor(s.length/2); return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+function pstdev(a){ if(a.length<2)return 0; const m=a.reduce((x,y)=>x+y,0)/a.length; return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length); }
+function startableSlots(teams){
+  const s={};
+  for(const p in STARTERS) s[p]=STARTERS[p];
+  for(const p in FLEX_WEIGHTS) s[p]=(s[p]||0)+FLEX*FLEX_WEIGHTS[p];
+  for(const p in s) s[p]*=teams;         // leaguewide startable count = the replacement rank
+  return s;
+}
+function replacementPoints(list, rank){
+  if(!list.length) return 0;
+  const r=[...list].sort((a,b)=>b.pts-a.pts);
+  const idx=Math.max(0,rank), lo=Math.floor(idx);
+  if(lo>=r.length) return r[r.length-1].pts;
+  if(lo===0) return r[0].pts;
+  const frac=idx-lo, loP=r[lo-1].pts, hiP=lo<r.length?r[lo].pts:loP;
+  return loP+(hiP-loP)*frac;
+}
+function recomputeBoard(){
+  const slots=startableSlots(TEAMS), byPos={};
+  BOARD.forEach(p=>{(byPos[p.pos]=byPos[p.pos]||[]).push(p);});
+  // Value = points above the replacement-level player at that position.
+  for(const pos in byPos){
+    const base=replacementPoints(byPos[pos], slots[pos]!=null?slots[pos]:byPos[pos].length);
+    byPos[pos].forEach(p=>p.vbd=Math.round((p.pts-base)*10)/10);
+  }
+  // Tiers = gap-based clusters within each position.
+  for(const pos in byPos){
+    const r=[...byPos[pos]].sort((a,b)=>b.vbd-a.vbd);
+    const gaps=[]; for(let i=0;i<r.length-1;i++) gaps.push(r[i].vbd-r[i+1].vbd);
+    const thr=gaps.length?Math.max(8, median(gaps)+pstdev(gaps)):8;
+    let tier=1; if(r.length) r[0].tier=1;
+    for(let i=1;i<r.length;i++){ if(r[i-1].vbd-r[i].vbd>=thr && tier<12) tier++; r[i].tier=tier; }
+  }
+  // Overall + positional ranks by value.
+  const all=[...BOARD].sort((a,b)=>b.vbd-a.vbd), pc={};
+  all.forEach((p,i)=>{p.rank=i+1; pc[p.pos]=(pc[p.pos]||0)+1; p.pos_rank=pc[p.pos];});
+}
 
 // ---- snake draft math ----
 function slotOf(overall){
@@ -518,10 +565,19 @@ function render(){
 }
 
 let SORT={k:"vbd",dir:-1};
+document.getElementById('slot').max = TEAMS;
+recomputeBoard();   // ensure the board matches the current team count on load
 document.querySelectorAll('th.s').forEach(th=>{
   th.onclick=()=>{const k=th.dataset.k;SORT.dir=(SORT.k===k)?-SORT.dir:(k==='name'?1:-1);SORT.k=k;render();};
 });
 document.getElementById('slot').addEventListener('input',()=>{ST.slot=mySlot();save();render();});
+document.getElementById('teams').addEventListener('input',()=>{
+  let t=Math.round(+document.getElementById('teams').value||13);
+  t=Math.max(4,Math.min(20,t)); TEAMS=t; ST.teams=t;
+  const s=document.getElementById('slot');
+  s.max=TEAMS; if(+s.value>TEAMS){s.value=TEAMS; ST.slot=TEAMS;}
+  save(); recomputeBoard(); render();
+});
 document.getElementById('quick').addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault();pickByName(e.shiftKey);}
 });
