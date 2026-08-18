@@ -18,7 +18,7 @@ from .models import Player
 # Hard caps: don't recommend more of a position than you could ever use.
 DEFAULT_POSITION_CAPS = {"QB": 3, "RB": 8, "WR": 8, "TE": 3, "K": 1, "DEF": 2}
 # Desired depth beyond starters (starters + this) before need drops to zero.
-DEFAULT_DEPTH_TARGETS = {"QB": 1, "RB": 3, "WR": 3, "TE": 1, "K": 0, "DEF": 0}
+DEFAULT_DEPTH_TARGETS = {"QB": 1, "RB": 3, "WR": 3, "TE": 0, "K": 0, "DEF": 0}
 
 
 @dataclass
@@ -105,10 +105,11 @@ def _need_state(
     depth_targets: Dict[str, int], caps: Dict[str, int],
 ) -> str:
     have = counts.get(pos, 0)
+    # Must-fill is measured against DEDICATED starting slots only. The shared
+    # flex slot must NOT make every flex-eligible position must-fill at once
+    # (that starves whichever position has lower raw value, e.g. WR behind RB).
+    # Flex/bench depth is captured by depth_targets below instead.
     starters = league.starters.get(pos, 0)
-    # Flex-eligible positions effectively need one more than dedicated starters.
-    if pos in league.flex_weights and league.flex:
-        starters += 1
     cap = caps.get(pos, 99)
     target = starters + depth_targets.get(pos, 0)
     if have >= cap:
@@ -120,7 +121,11 @@ def _need_state(
     return "luxury"
 
 
-_NEED_MULT = {"must-fill": 1.0, "depth": 0.6, "luxury": 0.15, "full": -1.0}
+# Additive priority (in VBD points) for filling roster needs. Filling an empty
+# STARTING slot is worth a large bump so a needed starter beats piling a 2nd/3rd
+# player onto an already-filled position — but a big enough VBD gap (an elite
+# player falling) can still win, which is the behavior we want.
+_NEED_BONUS = {"must-fill": 60.0, "depth": 20.0, "luxury": 0.0}
 
 
 def _future_dropoff(
@@ -175,19 +180,24 @@ def recommend(
     picks_ahead = state.picks_until_next() or 0
     dropoff = _future_dropoff(available, picks_ahead)
 
+    # Kickers and defenses are streamable and unpredictable — never recommend
+    # them until the final two rounds, no matter how their modeled VBD looks.
+    round_no = (state.current_overall - 1) // state.teams + 1
+    total_rounds = state.league.total_roster_size()
+    late = round_no >= total_rounds - 1
+
     suggestions: List[Suggestion] = []
     for p in available:
+        if p.position in ("K", "DEF") and not late:
+            continue
         need = _need_state(p.position, counts, state.league, depth_targets, caps)
-        need_mult = _NEED_MULT[need]
         if need == "full":
             continue  # never suggest a position you can't use
         pos_drop = dropoff.get(p.position, 0.0)
-        # Composite: raw value, scaled by need, plus a scarcity nudge toward
-        # positions about to fall off before your next pick.
-        score = p.vbd * (0.5 + 0.5 * max(need_mult, 0.0)) + scarcity_weight * pos_drop
-        # Small tilt for must-fill starters so you don't punt a starting slot.
-        if need == "must-fill":
-            score += 5.0
+        # Composite: raw value above replacement, plus a scarcity nudge toward
+        # positions about to fall off before your next pick, plus a priority
+        # bump for filling an unfilled starting slot.
+        score = p.vbd + scarcity_weight * pos_drop + _NEED_BONUS[need]
         reason = _explain(p, need, pos_drop, state)
         suggestions.append(
             Suggestion(player=p, score=round(score, 2), dropoff=pos_drop,
@@ -203,11 +213,13 @@ def _explain(p: Player, need: str, dropoff: float, state: DraftState) -> str:
     if p.tier is not None:
         bits.append(f"tier {p.tier}")
     if p.adp is not None:
-        edge = p.adp - state.current_overall
-        if edge >= 6:
-            bits.append(f"value (ADP {p.adp:.0f}, ~{edge:.0f} past)")
-        elif edge <= -6:
-            bits.append(f"reach (ADP {p.adp:.0f})")
+        # How far the player has fallen past his ADP: positive = value (he's
+        # lasted longer than usual), negative = you'd be reaching to take him now.
+        fell = state.current_overall - p.adp
+        if fell >= 6:
+            bits.append(f"value (ADP {p.adp:.0f}, ~{fell:.0f} past)")
+        elif fell <= -6:
+            bits.append(f"reach (ADP {p.adp:.0f}, ~{-fell:.0f} early)")
         else:
             bits.append(f"ADP {p.adp:.0f}")
     if dropoff >= 15:
