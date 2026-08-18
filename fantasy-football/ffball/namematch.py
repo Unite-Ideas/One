@@ -34,7 +34,7 @@ def find(query: str, players: Sequence[Player]) -> List[Player]:
     q = _norm(query)
     if not q:
         return []
-    q = _ALIASES.get(q, q)
+    q = _norm(_ALIASES.get(q, q))  # normalize alias target too (drops hyphens)
 
     exact, prefix, sub, lastname = [], [], [], []
     for p in players:

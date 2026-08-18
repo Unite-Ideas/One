@@ -59,9 +59,34 @@ Sleeper asks for < ~1000 calls/min and no auth. We cache the big/slow payloads
 (the full players list especially) to local JSON with a TTL, so normal use is a
 handful of requests. See `ffball/http.py`.
 
-## Note on this build environment
-The remote sandbox this was authored in blocks outbound calls to
-`api.sleeper.app` at the network-policy layer, so live sync can't run *here*.
-Everything is written to run against the real API the moment you run it on your
-own machine (or any environment with open network). A bundled **sample dataset**
-(`data/sample/`) lets every command work offline for development and demos.
+## Backup live source: FantasyPros ECR via GitHub (`ffball fetch`)
+Some networks block `api.sleeper.app` at the egress policy layer (the
+environment this was built in does). To stay useful anywhere, `ffball fetch`
+pulls **real, current** data from the open-source **nflverse / dynastyprocess**
+projects, which publish CSVs on GitHub — and `raw.githubusercontent.com` is
+almost always reachable even when general web egress is locked down:
+
+| File (under `dynastyprocess/data/master/files/`) | Gives us |
+|---|---|
+| `db_fpecr_latest.csv` | FantasyPros **redraft** Expert Consensus Rankings (ECR), bye weeks, ownership % — refreshed constantly |
+| `db_playerids.csv` | Player-ID crosswalk incl. **`sleeper_id`**, so every player maps onto your Sleeper league |
+
+```bash
+python3 -m ffball fetch --scoring ppr   # writes data/projections/fantasypros_live.csv
+python3 -m ffball init                   # builds the real board from it
+```
+
+Because there's no free per-stat projection feed, `fetch` models projected
+points from a **transparent positional value curve** (`ffball/sources.py`,
+`POINTS_ANCHORS`) keyed on each player's positional ECR rank — and it shifts
+with the scoring format you pass (`--scoring ppr|half_ppr|standard`). The
+*ordering, tiers, byes, and Sleeper mapping are real*; only the point magnitudes
+are modeled. Drop a real per-stat projection CSV into `data/projections/` and it
+becomes exact.
+
+## Connectivity map (observed)
+- `api.sleeper.app` — **blocked** in locked-down environments (org egress
+  policy). Works on open networks; that's the preferred live source.
+- `raw.githubusercontent.com` — **reachable**, powers `ffball fetch`.
+- A bundled **synthetic sample** (`data/sample/`) is the final fallback so every
+  command runs fully offline.

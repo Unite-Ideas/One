@@ -28,7 +28,10 @@ and a zero-dependency web "war room" dashboard — all driven by your league's
 ```bash
 cd fantasy-football
 
-# 1. Build the value board (uses bundled sample data out of the box)
+# 0. (recommended) Pull REAL current FantasyPros ranks + byes + Sleeper ids
+python3 -m ffball fetch --scoring ppr
+
+# 1. Build the value board (uses the fetched data, or the bundled sample)
 python3 -m ffball init --scoring ppr --roster standard_12
 
 # 2. Look at the board and tiers
@@ -69,6 +72,7 @@ drop real projection CSVs into `data/projections/` — they're auto-blended. See
 ## Commands
 | Command | What it does |
 |---|---|
+| `fetch` | Pull real current FantasyPros ECR + byes + Sleeper ids from GitHub |
 | `init` | Build the value board (scoring + roster preset, or `--league-id`) |
 | `board [--pos] [--limit]` | Print the ranked value board |
 | `tiers [--pos]` | Print tiered rankings by position |

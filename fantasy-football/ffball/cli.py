@@ -320,6 +320,20 @@ def cmd_sync(args) -> int:
 # --------------------------------------------------------------------------
 # argparse wiring
 # --------------------------------------------------------------------------
+def cmd_fetch(args) -> int:
+    """Pull real, current FantasyPros redraft ECR + byes + Sleeper crosswalk."""
+    from . import sources
+    print("Fetching live data from GitHub-hosted nflverse/dynastyprocess ...")
+    try:
+        path, total, mapped = sources.fetch(scoring=args.scoring)
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(f"Wrote {total} players ({mapped} mapped to a real Sleeper id) -> {path}")
+    print(f"Points modeled for '{args.scoring}' scoring. Now run: python3 -m ffball init")
+    return 0
+
+
 def cmd_serve(args) -> int:
     from .web import serve
     serve(db_path=args.db, host=args.host, port=args.port)
@@ -359,6 +373,10 @@ def build_parser() -> argparse.ArgumentParser:
     ps.add_argument("--draft-id", default=None)
     ps.add_argument("--slot", type=int, default=None)
     ps.set_defaults(func=cmd_sync)
+
+    pf = sub.add_parser("fetch", help="pull real FantasyPros ECR + Sleeper ids from GitHub")
+    pf.add_argument("--scoring", default="ppr", help="points model: ppr|half_ppr|standard")
+    pf.set_defaults(func=cmd_fetch)
 
     pw = sub.add_parser("serve", help="run the web dashboard")
     pw.add_argument("--host", default="127.0.0.1")
