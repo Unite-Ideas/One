@@ -35,6 +35,9 @@ def _load_config(db: Database) -> tuple[ScoringSystem, LeagueConfig]:
     roster_name = db.get_meta("roster", "standard_12")
     scoring = ScoringSystem.from_preset(scoring_name)
     league = LeagueConfig.from_preset(roster_name)
+    teams_override = db.get_meta("teams", None)
+    if teams_override:
+        league.teams = int(teams_override)
     return scoring, league
 
 
@@ -76,6 +79,11 @@ def cmd_init(args) -> int:
     else:
         scoring = ScoringSystem.from_preset(args.scoring)
         league = LeagueConfig.from_preset(args.roster)
+        if args.teams:
+            league.teams = args.teams
+            db.set_meta("teams", args.teams)
+        else:
+            db.set_meta("teams", None)
         db.set_meta("scoring", args.scoring)
         db.set_meta("roster", args.roster)
         print(f"Config: scoring={args.scoring}, roster={league.summary()}")
@@ -408,6 +416,8 @@ def build_parser() -> argparse.ArgumentParser:
     pi = sub.add_parser("init", help="build the value board")
     pi.add_argument("--scoring", default="ppr", help="scoring preset: ppr|half_ppr|standard")
     pi.add_argument("--roster", default="standard_12", help="roster preset")
+    pi.add_argument("--teams", type=int, default=None,
+                    help="override team count for any roster preset (e.g. 14, 15, 16)")
     pi.add_argument("--league-id", default=None, help="Sleeper league id (overrides presets)")
     pi.set_defaults(func=cmd_init)
 

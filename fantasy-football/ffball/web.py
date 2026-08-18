@@ -30,6 +30,9 @@ _PAGE = (Path(__file__).parent / "static" / "dashboard.html")
 def _config(db: Database):
     scoring = ScoringSystem.from_preset(db.get_meta("scoring", "ppr"))
     league = LeagueConfig.from_preset(db.get_meta("roster", "standard_12"))
+    teams_override = db.get_meta("teams", None)
+    if teams_override:
+        league.teams = int(teams_override)
     return scoring, league
 
 
