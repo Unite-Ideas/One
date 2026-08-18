@@ -1,0 +1,14 @@
+{
+  "_comment": "Sean's real Sleeper league — The Final Draft Lifegroup. Used for live sync + the season routine.",
+  "league_name": "The Final Draft Lifegroup",
+  "league_id": "1395483423719587840",
+  "draft_id": "1395483425380528128",
+  "sleeper_username": "GodModeEnabled",
+  "sleeper_user_id": "1395449811368419328",
+  "season": "2026",
+  "teams": 10,
+  "scoring": "ppr",
+  "roster_positions": ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "FLEX", "K", "DEF", "BN", "BN", "BN", "BN", "BN"],
+  "draft_type": "snake",
+  "rounds": 15
+}
