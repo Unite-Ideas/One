@@ -384,6 +384,15 @@ function undo(){
   if(ST.mine[ST.mine.length-1]===last) ST.mine.pop();
   save(); render(); toast("Undid "+(BY_ID[last]?BY_ID[last].name:"pick"));
 }
+function undoPlayer(id){
+  const i=ST.drafted.indexOf(id);
+  if(i===-1) return;
+  ST.drafted.splice(i,1);
+  const j=ST.mine.indexOf(id);
+  if(j!==-1) ST.mine.splice(j,1);
+  save(); render();
+  toast("↩ Put "+(BY_ID[id]?BY_ID[id].name:"player")+" back on the board");
+}
 function resetDraft(){
   if(confirm("Clear the whole draft and start fresh?")){ ST.drafted=[]; ST.mine=[]; save(); render(); }
 }
@@ -458,7 +467,8 @@ function render(){
   const mine=ST.mine.map(id=>BY_ID[id]).filter(Boolean).sort((a,b)=>(order[a.pos]-order[b.pos])||(b.vbd-a.vbd));
   ros.innerHTML = mine.length? mine.map(p=>{tot+=p.pts;return `<li>
       <span><span class="pos ${p.pos}" title="${POSFULL[p.pos]}">${p.pos}</span> ${p.name}</span>
-      <span class="r">${Math.round(p.pts)} pts · bye ${p.bye||'-'}</span></li>`}).join('')
+      <span class="r">${Math.round(p.pts)} pts · bye ${p.bye||'-'}
+        <button class="mini btn-off" style="margin-left:8px;padding:2px 7px" onclick="undoPlayer('${p.id}')" title="Remove ${p.name} from your team and put him back on the board">✕</button></span></li>`}).join('')
     : '<li class="r">No players yet — your picks will appear here.</li>';
   document.getElementById('totline').innerHTML = mine.length?
     `Projected points from your picks: <b>${Math.round(tot)}</b>`:'';
@@ -483,7 +493,8 @@ function render(){
       <td class="n" style="color:var(--dim)">${p.adp!=null?Math.round(p.adp):'—'}</td>
       <td class="n" style="color:var(--dim)">${p.tier||'-'}</td>
       <td class="n" style="color:var(--dim)">${p.bye||'-'}</td>
-      <td class="n">${gone?'<span class="taken">taken</span>':
+      <td class="n">${gone?
+        `<button class="mini btn-off" onclick="undoPlayer('${p.id}')" title="Mistake? Put this player back on the board">↩ undo${mine?' (yours)':''}</button>`:
         `<button class="mini btn-me" onclick="draftPlayer('${p.id}',true)">me</button>
          <button class="mini btn-off" onclick="draftPlayer('${p.id}',false)">off</button>`}</td>
     </tr>`;}).join('');
