@@ -320,6 +320,66 @@ def cmd_sync(args) -> int:
 # --------------------------------------------------------------------------
 # argparse wiring
 # --------------------------------------------------------------------------
+def cmd_doctor(args) -> int:
+    """Connectivity self-check: what can this environment actually reach?"""
+    import os
+    import urllib.request
+    import urllib.error
+
+    def probe(url: str, timeout: int = 15):
+        req = urllib.request.Request(url, headers={"User-Agent": "ffball/0.1"})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                resp.read(200)
+                return True, f"HTTP {resp.status}"
+        except urllib.error.HTTPError as exc:
+            # A 4xx still proves we reached the host.
+            return True, f"HTTP {exc.code} (reachable)"
+        except Exception as exc:  # noqa: BLE001
+            return False, str(exc).splitlines()[0][:80]
+
+    print("ffball doctor — connectivity self-check\n")
+    proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
+    print(f"HTTPS proxy: {proxy or '(none)'}\n")
+
+    targets = [
+        ("Sleeper API        (live league sync)", "https://api.sleeper.app/v1/state/nfl"),
+        ("GitHub raw         (fetch fallback)  ", "https://raw.githubusercontent.com/dynastyprocess/data/master/files/values-players.csv"),
+    ]
+    results = {}
+    for label, url in targets:
+        ok, detail = probe(url)
+        results[label.strip()] = ok
+        mark = "OK  ✓" if ok else "BLOCKED ✗"
+        print(f"  [{mark:>10}]  {label}  {detail}")
+
+    sleeper_ok = results.get("Sleeper API        (live league sync)".strip(), False)
+    print()
+    if sleeper_ok:
+        print("Sleeper is reachable — live league sync is available.")
+        if args.league_id:
+            from .sleeper import Sleeper
+            from .league import LeagueConfig
+            from .scoring import ScoringSystem
+            lg = Sleeper().league(args.league_id)
+            if lg:
+                scoring = ScoringSystem.from_sleeper_league(lg)
+                league = LeagueConfig.from_sleeper_league(lg)
+                print(f"\nLeague '{league.name}':")
+                print(f"  format : {league.summary()}")
+                print(f"  PPR    : {scoring.is_ppr()} pt/reception")
+                print("  Run: python3 -m ffball init --league-id " + args.league_id)
+            else:
+                print(f"Could not load league {args.league_id}.")
+    else:
+        print("Sleeper is BLOCKED by this environment's network policy.")
+        print("Fix: set the environment's Network access to 'Custom', add")
+        print("     api.sleeper.app, keep the default package list checked,")
+        print("     then start a NEW session. Meanwhile `ffball fetch` still")
+        print("     works via GitHub for real rankings.")
+    return 0
+
+
 def cmd_fetch(args) -> int:
     """Pull real, current FantasyPros redraft ECR + byes + Sleeper crosswalk."""
     from . import sources
@@ -373,6 +433,10 @@ def build_parser() -> argparse.ArgumentParser:
     ps.add_argument("--draft-id", default=None)
     ps.add_argument("--slot", type=int, default=None)
     ps.set_defaults(func=cmd_sync)
+
+    pdoc = sub.add_parser("doctor", help="connectivity self-check (is Sleeper reachable?)")
+    pdoc.add_argument("--league-id", default=None, help="also print league config if Sleeper is up")
+    pdoc.set_defaults(func=cmd_doctor)
 
     pf = sub.add_parser("fetch", help="pull real FantasyPros ECR + Sleeper ids from GitHub")
     pf.add_argument("--scoring", default="ppr", help="points model: ppr|half_ppr|standard")
