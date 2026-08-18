@@ -16,7 +16,7 @@ from .league import LeagueConfig
 from .models import Player
 
 # Hard caps: don't recommend more of a position than you could ever use.
-DEFAULT_POSITION_CAPS = {"QB": 3, "RB": 8, "WR": 8, "TE": 3, "K": 1, "DEF": 2}
+DEFAULT_POSITION_CAPS = {"QB": 2, "RB": 8, "WR": 8, "TE": 2, "K": 1, "DEF": 2}
 # Desired depth beyond starters (starters + this) before need drops to zero.
 DEFAULT_DEPTH_TARGETS = {"QB": 1, "RB": 3, "WR": 3, "TE": 0, "K": 0, "DEF": 0}
 
@@ -121,11 +121,23 @@ def _need_state(
     return "luxury"
 
 
-# Additive priority (in VBD points) for filling roster needs. Filling an empty
-# STARTING slot is worth a large bump so a needed starter beats piling a 2nd/3rd
-# player onto an already-filled position — but a big enough VBD gap (an elite
-# player falling) can still win, which is the behavior we want.
-_NEED_BONUS = {"must-fill": 60.0, "depth": 20.0, "luxury": 0.0}
+# Position-aware urgency for filling an empty STARTING slot. RB/WR are scarce and
+# steep, so their need is urgent early; QB/TE are deep positions you can wait on,
+# so their urgency is lower; K/DEF only ever matter in the last rounds.
+_MUSTFILL_BONUS = {"RB": 60.0, "WR": 60.0, "QB": 22.0, "TE": 28.0, "K": 15.0, "DEF": 15.0}
+_FLEX_DEPTH_BONUS = 15.0    # a player who can fill a FLEX / useful bench slot
+_FLEX_FILL_MULT = 0.85     # value multiplier while still filling startable spots
+_OVER_CAP_MULT = 0.30      # heavy discount once you can't realistically start more
+_REACH_GRACE = 8.0         # picks before ADP you may take a player for free
+_REACH_WEIGHT = 1.0        # penalty per pick reached beyond the grace window
+
+
+def _startable_capacity(pos: str, league: LeagueConfig) -> float:
+    """How many of this position YOU can realistically start (starters + flex share)."""
+    cap = float(league.starters.get(pos, 0))
+    cap += league.flex * league.flex_weights.get(pos, 0.0)
+    cap += getattr(league, "super_flex", 0) * getattr(league, "super_flex_weights", {}).get(pos, 0.0)
+    return cap
 
 
 def _future_dropoff(
@@ -188,16 +200,29 @@ def recommend(
 
     suggestions: List[Suggestion] = []
     for p in available:
-        if p.position in ("K", "DEF") and not late:
+        pos = p.position
+        if pos in ("K", "DEF") and not late:
             continue
-        need = _need_state(p.position, counts, state.league, depth_targets, caps)
-        if need == "full":
-            continue  # never suggest a position you can't use
-        pos_drop = dropoff.get(p.position, 0.0)
-        # Composite: raw value above replacement, plus a scarcity nudge toward
-        # positions about to fall off before your next pick, plus a priority
-        # bump for filling an unfilled starting slot.
-        score = p.vbd + scarcity_weight * pos_drop + _NEED_BONUS[need]
+        have = counts.get(pos, 0)
+        if have >= caps.get(pos, 99):
+            continue  # never suggest a position you truly can't use another of
+
+        starters = state.league.starters.get(pos, 0)
+        capacity = _startable_capacity(pos, state.league)
+        if have < starters:
+            # An unfilled starting slot: urgent (scaled by how scarce the pos is).
+            mult, bonus, need = 1.0, _MUSTFILL_BONUS.get(pos, 40.0), "must-fill"
+        elif have < capacity:
+            # Still filling startable spots (your FLEX): valuable depth.
+            mult, bonus, need = _FLEX_FILL_MULT, _FLEX_DEPTH_BONUS, "depth"
+        else:
+            # You can't realistically start another — bench only, discount hard.
+            mult, bonus, need = _OVER_CAP_MULT, 0.0, "luxury"
+
+        pos_drop = dropoff.get(pos, 0.0)
+        reach = (p.adp - state.current_overall) if p.adp is not None else 0.0
+        reach_pen = _REACH_WEIGHT * max(0.0, reach - _REACH_GRACE)
+        score = p.vbd * mult + scarcity_weight * pos_drop + bonus - reach_pen
         reason = _explain(p, need, pos_drop, state)
         suggestions.append(
             Suggestion(player=p, score=round(score, 2), dropoff=pos_drop,

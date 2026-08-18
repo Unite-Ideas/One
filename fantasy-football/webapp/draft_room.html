@@ -306,9 +306,20 @@ function setActivePts(){ BOARD.forEach(p=>{ p.pts = p["pts_"+SCORING]; }); }
 const STARTERS = {QB:1,RB:2,WR:2,TE:1,K:1,DEF:1};
 const FLEX = 2, BENCH = 5;   // The Final Draft Lifegroup: 2 flex, 5 bench
 const ROUNDS = Object.values(STARTERS).reduce((a,b)=>a+b,0) + FLEX + BENCH; // 15
-const CAPS = {QB:3,RB:8,WR:8,TE:3,K:1,DEF:2};
+const CAPS = {QB:2,RB:8,WR:8,TE:2,K:1,DEF:2};   // never stockpile 3+ QB/TE
 const DEPTH = {QB:1,RB:3,WR:3,TE:0,K:0,DEF:0};
-const NEED_BONUS = {"must-fill":60,"depth":20,"luxury":0};
+const NEED_BONUS = {"must-fill":60,"depth":20,"luxury":0};   // (legacy; superseded below)
+// Roster-construction model: position-aware urgency + startable-capacity discount.
+const MUSTFILL_BONUS={RB:60,WR:60,QB:22,TE:28,K:15,DEF:15};
+const FLEX_DEPTH_BONUS=15, FLEX_FILL_MULT=0.85, OVER_CAP_MULT=0.30, REACH_GRACE=8, REACH_W=1;
+function startableCapacity(pos){ return (STARTERS[pos]||0) + FLEX*(FLEX_WEIGHTS[pos]||0); }
+function pickScoreParts(pos, have){
+  // returns {mult, bonus, need} for a candidate given how many you already have
+  const starters=STARTERS[pos]||0, cap=startableCapacity(pos);
+  if(have<starters) return {mult:1.0, bonus:(MUSTFILL_BONUS[pos]??40), need:"must-fill"};
+  if(have<cap)      return {mult:FLEX_FILL_MULT, bonus:FLEX_DEPTH_BONUS, need:"depth"};
+  return {mult:OVER_CAP_MULT, bonus:0, need:"luxury"};
+}
 const SCARCITY_W = 0.5;
 const FLEX_WEIGHTS = {RB:0.45, WR:0.45, TE:0.10};  // share of the flex slot
 const POSFULL = {QB:"Quarterback",RB:"Running Back",WR:"Wide Receiver",TE:"Tight End",K:"Kicker",DEF:"Defense / Special Teams"};
@@ -430,13 +441,18 @@ function recommend(topN){
   const drop=futureDropoff(avail,ahead);
   const round=Math.floor((currentOverall()-1)/TEAMS)+1;
   const late = round >= ROUNDS-1;
+  const cur=currentOverall();
   const out=[];
   for(const p of avail){
-    if((p.pos==="K"||p.pos==="DEF") && !late) continue;
-    const need=needState(p.pos,counts);
-    if(need==="full") continue;
-    const dd=drop[p.pos]||0;
-    const score=p.vbd + SCARCITY_W*dd + NEED_BONUS[need];
+    const pos=p.pos;
+    if((pos==="K"||pos==="DEF") && !late) continue;
+    const have=counts[pos]||0;
+    if(have>=(CAPS[pos]??99)) continue;            // can't use another
+    const {mult,bonus,need}=pickScoreParts(pos, have);
+    const dd=drop[pos]||0;
+    const reach=(p.adp!=null)?(p.adp-cur):0;
+    const reachPen=REACH_W*Math.max(0, reach-REACH_GRACE);
+    const score=p.vbd*mult + SCARCITY_W*dd + bonus - reachPen;
     out.push({p,score,need,drop:dd});
   }
   out.sort((a,b)=>b.score-a.score);
@@ -622,11 +638,12 @@ function simulateDraft(N){
   const alive0=BOARD.filter(p=>!ST.drafted.includes(p.id));
   const idxCount=myPickOveralls.map(()=>({}));   // per-my-pick: playerId -> times chosen
   const NOISE=7;
+  const OPP_CAP={QB:2,RB:6,WR:7,TE:2,K:1,DEF:1};   // sharp opponents don't over-stock either
   for(let s=0;s<N;s++){
     const taken=new Set(ST.drafted);
-    // opponents draft by ADP + noise (K/DEF sink naturally via their high ADP)
-    const pri=alive0.map(p=>({id:p.id, k:(p.adp||9999)+randn()*NOISE})).sort((a,b)=>a.k-b.k);
-    let ptr=0;
+    // opponents draft by ADP + noise but respect roster construction (realistic)
+    const pri=alive0.map(p=>({id:p.id, pos:p.pos, k:(p.adp||9999)+randn()*NOISE})).sort((a,b)=>a.k-b.k);
+    const oppCounts={};
     const myCount={}; let mi=0;
     for(let o=start;o<=totalPicks;o++){
       const round=Math.floor((o-1)/teams)+1, late=round>=rounds-1;
@@ -635,28 +652,45 @@ function simulateDraft(N){
         for(const q of alive0){
           if(taken.has(q.id)) continue;
           if((q.pos==='K'||q.pos==='DEF')&&!late) continue;
-          const need=needState(q.pos,myCount);
-          if(need==='full') continue;
-          const sc=q.vbd+NEED_BONUS[need];
+          const have=myCount[q.pos]||0;
+          if(have>=(CAPS[q.pos]??99)) continue;
+          const sp=pickScoreParts(q.pos, have);
+          const sc=q.vbd*sp.mult + sp.bonus;
           if(sc>bs){bs=sc;best=q;}
         }
         if(best){taken.add(best.id);myCount[best.pos]=(myCount[best.pos]||0)+1;
           idxCount[mi][best.id]=(idxCount[mi][best.id]||0)+1;}
         mi++;
       } else {
-        while(ptr<pri.length && taken.has(pri[ptr].id)) ptr++;
-        if(ptr<pri.length){ taken.add(pri[ptr].id); ptr++; }
+        const oc = oppCounts[slotOf(o)] || (oppCounts[slotOf(o)]={});
+        for(let j=0;j<pri.length;j++){
+          const cand=pri[j];
+          if(taken.has(cand.id)) continue;
+          if((cand.pos==='K'||cand.pos==='DEF')&&!late) continue;
+          if((oc[cand.pos]||0) >= (OPP_CAP[cand.pos]??7)) continue;
+          taken.add(cand.id); oc[cand.pos]=(oc[cand.pos]||0)+1; break;
+        }
       }
     }
   }
   // summarize
   const picks=myPickOveralls.map((o,i)=>{
     const tally=idxCount[i];
-    const choices=Object.keys(tally).map(id=>({id,name:BY_ID[id].name,pos:BY_ID[id].pos,
-      pct:Math.round(100*tally[id]/N)})).sort((a,b)=>b.pct-a.pct).slice(0,3);
-    return {overall:o, round:Math.floor((o-1)/teams)+1, choices};
+    const ranked=Object.keys(tally).map(id=>({id,name:BY_ID[id].name,pos:BY_ID[id].pos,
+      pct:Math.round(100*tally[id]/N)})).sort((a,b)=>b.pct-a.pct);
+    return {overall:o, round:Math.floor((o-1)/teams)+1, choices:ranked.slice(0,3), _all:ranked.slice(0,8)};
   });
-  const projected=picks.map(pk=>pk.choices[0]?BY_ID[pk.choices[0].id]:null).filter(Boolean);
+  // Assemble ONE coherent projected team: unique players, position caps respected,
+  // so the display reads as a real roster (no repeats, no 3rd TE).
+  const chosen=new Set(), pc={};
+  picks.forEach(pk=>{
+    let sel=pk._all.find(c=>!chosen.has(c.id) && (pc[c.pos]||0) < (CAPS[c.pos]??99));
+    if(!sel) sel=pk.choices[0]||null;
+    if(sel){ chosen.add(sel.id); pc[sel.pos]=(pc[sel.pos]||0)+1; }
+    pk.top=sel;
+    delete pk._all;
+  });
+  const projected=picks.map(pk=>pk.top?BY_ID[pk.top.id]:null).filter(Boolean);
   return {picks, bye:byeReport(projected)};
 }
 function runPlanner(){ PLAN=simulateDraft(150); renderPlanner(); }
@@ -670,7 +704,7 @@ function renderPlanner(){
   PLAN.picks.forEach(pk=>{
     if(!pk.choices.length) return;
     h+=`<div class="planrow"><span class="planpick">Pick #${pk.overall} <small>(Rd ${pk.round})</small></span>`;
-    const list = detail ? pk.choices : pk.choices.slice(0,1);
+    const list = detail ? pk.choices : (pk.top ? [pk.top] : pk.choices.slice(0,1));
     h+=list.map(c=>`<span class="planopt"><span class="pos ${c.pos}" title="${POSFULL[c.pos]}">${c.pos}</span> ${c.name}${detail?` <b>${c.pct}%</b>`:''}</span>`).join('');
     h+=`</div>`;
   });
