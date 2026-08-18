@@ -104,6 +104,8 @@
   .tag.scarce{background:var(--scarce);color:#160a04} .tag.solid{background:var(--solid);color:#04122b}
   .rec ul{margin:0;padding:2px 14px 12px 40px;color:var(--dim);font-size:13px;line-height:1.5}
   .rec ul li{margin:4px 0}
+  .rec .warn{margin:-2px 14px 11px 40px;color:#ffb4ab;font-size:12.5px;font-weight:600;
+    background:#2a1416;border:1px solid #7a2b2b;border-radius:7px;padding:7px 10px}
   .rec .btns{display:flex;gap:9px;padding:0 14px 14px}
   .rec .btns button{flex:1;padding:9px;font-size:13.5px}
   .empty{color:var(--dim);font-size:13.5px;text-align:center;padding:20px 0}
@@ -143,6 +145,19 @@
   .slot.need .have{color:var(--reach)}
   .totline{margin-top:12px;color:var(--dim);font-size:13px}
   .totline b{color:var(--ink)}
+  .byebox{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  .byebox h3{font:700 12px "Archivo",sans-serif;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--dim);margin:0 0 8px}
+  .byewarn{background:#2a1416;border:1px solid #7a2b2b;border-radius:8px;
+    padding:8px 10px;color:#ffb4ab;font-size:12.5px;margin-bottom:7px;font-weight:600}
+  .byenote{background:#2a2410;border:1px solid #6b5a1e;border-radius:8px;
+    padding:7px 10px;color:#f0d385;font-size:12.5px;margin-bottom:7px}
+  .byeok{color:var(--turf);font-size:12.5px}
+  .byechips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+  .byechip{background:var(--panel2);border:1px solid var(--line);border-radius:6px;
+    padding:2px 8px;font-size:11.5px;color:var(--dim)}
+  .byechip.hot{border-color:#7a2b2b;color:#ffb4ab}
+  .byechip b{color:var(--ink)}
   /* toast */
   .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
     background:var(--turf);color:#052012;padding:10px 18px;border-radius:22px;
@@ -236,6 +251,7 @@
       <div class="slots" id="slots"></div>
       <ul class="roster" id="roster"></ul>
       <div class="totline" id="totline"></div>
+      <div class="byebox" id="byebox"></div>
     </div>
   </div>
 </div>
@@ -481,6 +497,32 @@ function resetDraft(){
 function toast(m){const t=document.getElementById('toast');t.textContent=m;
   t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1500);}
 
+// ---- bye-week analysis ----
+// Does drafting this candidate collide with a player you already have at the
+// SAME position on the SAME bye week? (the pileup that actually loses you a week)
+function candidateByeClash(p){
+  if(!p.bye) return [];
+  return ST.mine.map(id=>BY_ID[id])
+    .filter(q=>q && q.pos===p.pos && q.bye===p.bye);
+}
+// Summarize your roster's byes: same-position pileups (critical) and heavy weeks.
+function byeReport(){
+  const mine=ST.mine.map(id=>BY_ID[id]).filter(p=>p&&p.bye);
+  const byWeek={};
+  mine.forEach(p=>{(byWeek[p.bye]=byWeek[p.bye]||[]).push(p);});
+  const conflicts=[], heavy=[], weekCounts=[];
+  Object.keys(byWeek).map(Number).sort((a,b)=>a-b).forEach(wk=>{
+    const players=byWeek[wk];
+    weekCounts.push({wk, n:players.length});
+    const byPos={}; players.forEach(p=>(byPos[p.pos]=byPos[p.pos]||[]).push(p));
+    Object.keys(byPos).forEach(pos=>{
+      if(byPos[pos].length>=2) conflicts.push({wk,pos,players:byPos[pos]});
+    });
+    if(players.length>=4) heavy.push({wk,n:players.length});
+  });
+  return {conflicts, heavy, weekCounts};
+}
+
 // ---- glossary ----
 const GLOSSARY=[
  ["Position (QB/RB/WR/TE/K/DEF)","The job a player does. QB = Quarterback (throws), RB = Running Back (runs), WR = Wide Receiver (catches), TE = Tight End (blocks + catches), K = Kicker, DEF = a whole team's Defense counted as one unit."],
@@ -520,6 +562,8 @@ function render(){
   if(!recs.length){ rc.innerHTML='<div class="empty">Board complete — nothing left to draft.</div>'; }
   else rc.innerHTML=recs.map((s,i)=>{
     const p=s.p, tag=tagFor(p,s.drop,cur), why=explain(p,s.need,s.drop,cur);
+    const clash=candidateByeClash(p);
+    const warn = clash.length ? `<div class="warn">⚠️ Bye clash — he's off in Week ${p.bye}, the same week as your ${clash.map(c=>c.pos+' '+c.name).join(' and ')}. You'd have ${clash.length+1} ${p.pos}s all benched that week.</div>` : '';
     return `<div class="rec ${i===0?'top':''}">
       <div class="head">
         <div class="rank">${i+1}</div>
@@ -530,6 +574,7 @@ function render(){
         <span class="tag ${tag.key}">${tag.text}</span>
       </div>
       <ul>${why.map(x=>`<li>${x}</li>`).join('')}</ul>
+      ${warn}
       <div class="btns">
         <button class="btn-me" onclick="draftPlayer('${p.id}',true)">✅ Draft to my team</button>
         <button class="btn-off" onclick="draftPlayer('${p.id}',false)">Someone else took him</button>
@@ -554,6 +599,24 @@ function render(){
     : '<li class="r">No players yet — your picks will appear here.</li>';
   document.getElementById('totline').innerHTML = mine.length?
     `Projected points from your picks: <b>${Math.round(tot)}</b>`:'';
+
+  // bye-week report
+  const bb=document.getElementById('byebox');
+  if(mine.length<2){ bb.innerHTML=''; }
+  else {
+    const rep=byeReport();
+    let h='<h3>Bye weeks</h3>';
+    if(rep.conflicts.length){
+      rep.conflicts.forEach(c=>{ h+=`<div class="byewarn">⚠️ Week ${c.wk}: ${c.players.length} of your ${c.pos}s are off — ${c.players.map(p=>p.name).join(' & ')}. You'll be thin at ${POSFULL[c.pos]} that week; make sure you draft another ${c.pos} to cover it.</div>`; });
+    }
+    rep.heavy.forEach(hw=>{ if(!rep.conflicts.some(c=>c.wk===hw.wk)) h+=`<div class="byenote">Heads up: ${hw.n} of your players are off in Week ${hw.wk}. Spread future picks to other byes.</div>`; });
+    if(!rep.conflicts.length && !rep.heavy.length) h+='<div class="byeok">✓ No bye pileups — your off-weeks are nicely spread out.</div>';
+    // compact per-week chips
+    if(rep.weekCounts.length){
+      h+='<div class="byechips">'+rep.weekCounts.map(w=>`<span class="byechip ${w.n>=2?'hot':''}">Wk ${w.wk} <b>${w.n}</b></span>`).join('')+'</div>';
+    }
+    bb.innerHTML=h;
+  }
 
   // board table
   const pos=document.getElementById('posFilter').value;
