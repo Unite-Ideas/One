@@ -1,0 +1,47 @@
+{
+  "ppr": {
+    "_label": "Full PPR (1 pt per reception), single QB",
+    "pass_yd": 0.04,
+    "pass_td": 4,
+    "pass_int": -2,
+    "pass_2pt": 2,
+    "rush_yd": 0.1,
+    "rush_td": 6,
+    "rush_2pt": 2,
+    "rec": 1.0,
+    "rec_yd": 0.1,
+    "rec_td": 6,
+    "rec_2pt": 2,
+    "fum_lost": -2
+  },
+  "half_ppr": {
+    "_label": "Half PPR (0.5 pt per reception), single QB",
+    "pass_yd": 0.04,
+    "pass_td": 4,
+    "pass_int": -2,
+    "pass_2pt": 2,
+    "rush_yd": 0.1,
+    "rush_td": 6,
+    "rush_2pt": 2,
+    "rec": 0.5,
+    "rec_yd": 0.1,
+    "rec_td": 6,
+    "rec_2pt": 2,
+    "fum_lost": -2
+  },
+  "standard": {
+    "_label": "Standard / non-PPR, single QB",
+    "pass_yd": 0.04,
+    "pass_td": 4,
+    "pass_int": -2,
+    "pass_2pt": 2,
+    "rush_yd": 0.1,
+    "rush_td": 6,
+    "rush_2pt": 2,
+    "rec": 0.0,
+    "rec_yd": 0.1,
+    "rec_td": 6,
+    "rec_2pt": 2,
+    "fum_lost": -2
+  }
+}

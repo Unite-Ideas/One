@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ffball — draft war room</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --line:#30363d; --ink:#e6edf3; --dim:#8b949e;
+    --accent:#3fb950; --accent2:#58a6ff; --warn:#d29922; --bad:#f85149;
+    --mine:#132a1a; --gone:#21262d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{display:flex;gap:16px;align-items:center;flex-wrap:wrap;
+    padding:12px 18px;border-bottom:1px solid var(--line);background:var(--panel);
+    position:sticky;top:0;z-index:5}
+  header h1{font-size:16px;margin:0;letter-spacing:.5px}
+  header h1 span{color:var(--accent)}
+  .muted{color:var(--dim)}
+  .clock{margin-left:auto;text-align:right}
+  .clock b{color:var(--accent2)}
+  .wrap{display:grid;grid-template-columns:1.7fr 1fr;gap:16px;padding:16px;
+    align-items:start}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin-bottom:16px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.7px;
+    color:var(--dim);margin:0 0 10px}
+  input,select,button{background:#0d1117;color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:6px 9px;font-size:13px}
+  button{cursor:pointer}
+  button:hover{border-color:var(--accent2)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);
+    white-space:nowrap}
+  th{color:var(--dim);font-weight:600;font-size:12px;cursor:pointer;user-select:none}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  tr.gone{opacity:.35}
+  tr.mine{background:var(--mine)}
+  .pos{display:inline-block;min-width:30px;text-align:center;border-radius:4px;
+    padding:1px 4px;font-size:11px;font-weight:700}
+  .QB{background:#3b1d2b;color:#ff9ec4}.RB{background:#12331f;color:#7ee2a8}
+  .WR{background:#1b2c46;color:#8cc2ff}.TE{background:#3a2f12;color:#f2cc6b}
+  .K{background:#2a2340;color:#c6b6ff}.DEF{background:#2a2323;color:#ff9d9d}
+  .vpos{color:var(--accent)}.vneg{color:var(--bad)}
+  .rec{display:flex;gap:8px;align-items:flex-start;padding:8px;border-radius:8px;
+    border:1px solid var(--line);margin-bottom:8px;background:#0d1117}
+  .rec .n{font-weight:700;color:var(--accent2);min-width:18px}
+  .rec .body{flex:1}
+  .rec .nm{font-weight:600}
+  .rec .rs{color:var(--dim);font-size:12px}
+  .rec button{padding:3px 8px;font-size:12px}
+  .btnrow{display:flex;gap:6px}
+  .pick-me{border-color:var(--accent)}
+  .pill{font-size:11px;color:var(--dim);border:1px solid var(--line);
+    border-radius:20px;padding:2px 8px}
+  .roster li{display:flex;justify-content:space-between;padding:3px 0;
+    border-bottom:1px solid var(--line);list-style:none}
+  .roster ul{margin:0;padding:0}
+  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+    background:var(--accent);color:#04150a;padding:8px 16px;border-radius:20px;
+    font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
+  .qadd{display:flex;gap:6px;margin-bottom:10px}
+  .qadd input{flex:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>ff<span>ball</span> · draft war room</h1>
+  <span class="muted" id="league">—</span>
+  <label class="muted">slot
+    <input id="slot" type="number" min="1" value="1" style="width:56px">
+  </label>
+  <div class="clock" id="clock"></div>
+</header>
+
+<div class="wrap">
+  <div>
+    <div class="card">
+      <div class="qadd">
+        <input id="quick" placeholder="Quick pick — type a name, Enter = someone else drafted, Shift+Enter = I drafted">
+        <button onclick="pick(document.getElementById('quick').value,false)">Off board</button>
+        <button class="pick-me" onclick="pick(document.getElementById('quick').value,true)">Draft to me</button>
+      </div>
+      <div class="controls">
+        <select id="posFilter" onchange="render()">
+          <option value="">All positions</option>
+          <option>QB</option><option>RB</option><option>WR</option>
+          <option>TE</option><option>K</option><option>DEF</option>
+        </select>
+        <label class="muted"><input type="checkbox" id="hideGone" onchange="render()"> hide drafted</label>
+        <span class="pill" id="count"></span>
+        <button onclick="undo()">Undo</button>
+        <button onclick="reset()">Reset draft</button>
+      </div>
+      <table id="board">
+        <thead><tr>
+          <th data-k="rank" class="num">#</th><th data-k="name">Player</th>
+          <th data-k="pos">Pos</th><th data-k="pts" class="num">Pts</th>
+          <th data-k="vbd" class="num">VBD</th><th data-k="adp" class="num">ADP</th>
+          <th data-k="tier" class="num">Tier</th><th data-k="bye" class="num">Bye</th>
+          <th></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>On the clock</h2>
+      <div id="recs"></div>
+    </div>
+    <div class="card">
+      <h2>My team <span class="muted" id="rostersum"></span></h2>
+      <div class="roster"><ul id="roster"></ul></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+let STATE = {board:[]}, SORT={k:"rank",dir:1};
+
+async function load(){
+  const slot = +document.getElementById('slot').value || 1;
+  const r = await fetch('/api/state?slot='+slot);
+  STATE = await r.json();
+  document.getElementById('league').textContent = STATE.league || '';
+  render();
+}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1400);}
+
+async function pick(query, mine){
+  if(!query || !query.trim()) return;
+  const slot = +document.getElementById('slot').value || 1;
+  const r = await fetch('/api/pick',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({query:query.trim(), mine:!!mine, slot})});
+  const d = await r.json();
+  if(d.ok){ toast((mine?'You drafted ':'Off board: ')+d.player); document.getElementById('quick').value=''; load(); }
+  else toast(d.error||'no match');
+}
+async function pickId(id, mine){
+  const slot = +document.getElementById('slot').value || 1;
+  const r = await fetch('/api/pick',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id, mine:!!mine, slot})});
+  const d = await r.json(); if(d.ok){toast((mine?'You drafted ':'Off board: ')+d.player); load();}
+}
+async function undo(){await fetch('/api/undo',{method:'POST'});load();}
+async function reset(){if(confirm('Clear the whole draft?')){await fetch('/api/reset',{method:'POST'});load();}}
+
+function vcls(v){return v>=0?'vpos':'vneg';}
+function render(){
+  const clk=document.getElementById('clock');
+  clk.innerHTML = STATE.is_my_turn
+    ? `<b>YOUR PICK</b> · overall ${STATE.on_clock}`
+    : `pick ${STATE.on_clock} · your turn in ${(STATE.picks_until_next??'?')} `;
+  // recommendations
+  const rc=document.getElementById('recs');
+  rc.innerHTML = (STATE.recommendations||[]).map((s,i)=>`
+    <div class="rec">
+      <div class="n">${i+1}</div>
+      <div class="body">
+        <div class="nm">${s.name} <span class="pos ${s.pos}">${s.pos}</span></div>
+        <div class="rs">${s.reason}</div>
+      </div>
+      <div class="btnrow">
+        <button class="pick-me" onclick="pickId('${s.id}',true)">me</button>
+        <button onclick="pickId('${s.id}',false)">off</button>
+      </div>
+    </div>`).join('') || '<span class="muted">No board loaded. Run <code>ffball init</code>.</span>';
+  // roster
+  const ros=document.getElementById('roster'); let tot=0;
+  ros.innerHTML=(STATE.roster||[]).map(p=>{tot+=p.pts;return `<li><span>
+     <span class="pos ${p.pos}">${p.pos}</span> ${p.name}</span>
+     <span class="muted">${p.pts.toFixed(0)} · bye ${p.bye||'-'}</span></li>`}).join('');
+  document.getElementById('rostersum').textContent=(STATE.roster||[]).length?`(${(STATE.roster||[]).length} · ${tot.toFixed(0)} pts)`:'';
+  // board
+  const pos=document.getElementById('posFilter').value;
+  const hide=document.getElementById('hideGone').checked;
+  let rows=STATE.board.filter(p=>(!pos||p.pos===pos)&&(!hide||!p.drafted));
+  rows.sort((a,b)=>{let k=SORT.k,va=a[k],vb=b[k];
+    if(va==null)va=k==='adp'?9999:-9999; if(vb==null)vb=k==='adp'?9999:-9999;
+    if(typeof va==='string')return SORT.dir*va.localeCompare(vb);
+    return SORT.dir*(va-vb);});
+  const tb=document.querySelector('#board tbody');
+  tb.innerHTML=rows.slice(0,300).map(p=>`
+    <tr class="${p.drafted?(p.mine?'mine':'gone'):''}">
+      <td class="num muted">${p.rank}</td>
+      <td>${p.name}</td>
+      <td><span class="pos ${p.pos}">${p.pos}${p.pos_rank||''}</span></td>
+      <td class="num">${p.pts.toFixed(0)}</td>
+      <td class="num ${vcls(p.vbd)}">${p.vbd>=0?'+':''}${p.vbd.toFixed(0)}</td>
+      <td class="num muted">${p.adp!=null?p.adp.toFixed(0):'—'}</td>
+      <td class="num muted">${p.tier||'-'}</td>
+      <td class="num muted">${p.bye||'-'}</td>
+      <td class="btnrow">${p.drafted?'':`
+        <button class="pick-me" onclick="pickId('${p.id}',true)">me</button>
+        <button onclick="pickId('${p.id}',false)">off</button>`}</td>
+    </tr>`).join('');
+  document.getElementById('count').textContent=`${rows.filter(p=>!p.drafted).length} available`;
+}
+document.querySelectorAll('#board th[data-k]').forEach(th=>{
+  th.onclick=()=>{const k=th.dataset.k;SORT.dir=(SORT.k===k)?-SORT.dir:(k==='name'||k==='pos'?1:-1);SORT.k=k;render();};
+});
+document.getElementById('slot').onchange=load;
+document.getElementById('quick').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){pick(e.target.value, e.shiftKey);}
+});
+SORT={k:"vbd",dir:-1};
+load();

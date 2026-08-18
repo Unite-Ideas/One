@@ -1,0 +1,49 @@
+{
+  "standard_12": {
+    "_label": "12-team, 1QB/2RB/2WR/1TE/1FLEX/1K/1DEF, 6 bench",
+    "teams": 12,
+    "starters": {
+      "QB": 1,
+      "RB": 2,
+      "WR": 2,
+      "TE": 1,
+      "FLEX": 1,
+      "K": 1,
+      "DEF": 1
+    },
+    "flex_eligible": ["RB", "WR", "TE"],
+    "bench": 6
+  },
+  "superflex_12": {
+    "_label": "12-team Superflex (2nd QB-eligible flex) — QBs worth much more",
+    "teams": 12,
+    "starters": {
+      "QB": 1,
+      "RB": 2,
+      "WR": 2,
+      "TE": 1,
+      "FLEX": 1,
+      "SUPER_FLEX": 1,
+      "K": 1,
+      "DEF": 1
+    },
+    "flex_eligible": ["RB", "WR", "TE"],
+    "super_flex_eligible": ["QB", "RB", "WR", "TE"],
+    "bench": 6
+  },
+  "standard_10": {
+    "_label": "10-team, 1QB/2RB/2WR/1TE/1FLEX/1K/1DEF, 6 bench",
+    "teams": 10,
+    "starters": {
+      "QB": 1,
+      "RB": 2,
+      "WR": 2,
+      "TE": 1,
+      "FLEX": 1,
+      "K": 1,
+      "DEF": 1
+    },
+    "flex_eligible": ["RB", "WR", "TE"],
+    "bench": 6
+  }
+}
