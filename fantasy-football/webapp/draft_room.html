@@ -240,6 +240,20 @@ const DEPTH = {QB:1,RB:3,WR:3,TE:0,K:0,DEF:0};
 const NEED_BONUS = {"must-fill":60,"depth":20,"luxury":0};
 const SCARCITY_W = 0.5;
 const POSFULL = {QB:"Quarterback",RB:"Running Back",WR:"Wide Receiver",TE:"Tight End",K:"Kicker",DEF:"Defense / Special Teams"};
+const TEAM_NAMES = {
+  ARI:"Arizona Cardinals", ATL:"Atlanta Falcons", BAL:"Baltimore Ravens",
+  BUF:"Buffalo Bills", CAR:"Carolina Panthers", CHI:"Chicago Bears",
+  CIN:"Cincinnati Bengals", CLE:"Cleveland Browns", DAL:"Dallas Cowboys",
+  DEN:"Denver Broncos", DET:"Detroit Lions", GBP:"Green Bay Packers",
+  HOU:"Houston Texans", IND:"Indianapolis Colts", JAC:"Jacksonville Jaguars",
+  KCC:"Kansas City Chiefs", LAC:"Los Angeles Chargers", LAR:"Los Angeles Rams",
+  LVR:"Las Vegas Raiders", MIA:"Miami Dolphins", MIN:"Minnesota Vikings",
+  NEP:"New England Patriots", NOS:"New Orleans Saints", NYG:"New York Giants",
+  NYJ:"New York Jets", PHI:"Philadelphia Eagles", PIT:"Pittsburgh Steelers",
+  SEA:"Seattle Seahawks", SFO:"San Francisco 49ers", TBB:"Tampa Bay Buccaneers",
+  TEN:"Tennessee Titans", WAS:"Washington Commanders", FA:"Free agent"
+};
+function teamName(code){ return code && code!=="FA" ? (TEAM_NAMES[code]||code) : ""; }
 
 // ---- persistent draft state (browser localStorage) ----
 const KEY = "ffball_draft_v1";
@@ -443,7 +457,7 @@ function render(){
         <div class="rank">${i+1}</div>
         <div class="who">
           <div class="nm">${p.name}</div>
-          <div class="role"><span class="pos ${p.pos}" title="${POSFULL[p.pos]}">${p.pos}</span> ${POSFULL[p.pos]}${p.team?` · ${p.team}`:''}</div>
+          <div class="role"><span class="pos ${p.pos}" title="${POSFULL[p.pos]}">${p.pos}</span> ${POSFULL[p.pos]}${teamName(p.team)?` · ${teamName(p.team)}`:''}</div>
         </div>
         <span class="tag ${tag.key}">${tag.text}</span>
       </div>
