@@ -109,6 +109,12 @@
   .rec .btns{display:flex;gap:9px;padding:0 14px 14px}
   .rec .btns button{flex:1;padding:9px;font-size:13.5px}
   .empty{color:var(--dim);font-size:13.5px;text-align:center;padding:20px 0}
+  .planrow{display:flex;gap:8px;align-items:baseline;padding:5px 0;
+    border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .planpick{min-width:104px;color:var(--dim);font-size:12.5px}
+  .planpick small{color:var(--faint)}
+  .planopt{font-size:13px;margin-right:8px}
+  .planopt b{color:var(--turf);font-variant-numeric:tabular-nums}
   /* board table */
   .tablewrap{overflow-x:auto;margin:0 -4px}
   table{width:100%;border-collapse:collapse;font-size:13.5px}
@@ -252,6 +258,14 @@
       <ul class="roster" id="roster"></ul>
       <div class="totline" id="totline"></div>
       <div class="byebox" id="byebox"></div>
+    </div>
+    <div class="card">
+      <h2>🔮 Draft Planner</h2>
+      <div class="controls">
+        <button class="btn-me" onclick="runPlanner()">Project my likely draft</button>
+        <label class="fmt"><input type="checkbox" id="plannerDetail" onchange="renderPlanner()"> show odds</label>
+      </div>
+      <div id="planner" class="empty"></div>
     </div>
   </div>
 </div>
@@ -453,7 +467,7 @@ function draftPlayer(id, mine){
   if(!BY_ID[id] || ST.drafted.includes(id)) return;
   ST.drafted.push(id);
   if(mine) ST.mine.push(id);
-  ST.slot=mySlot(); save(); render();
+  ST.slot=mySlot(); PLAN=null; save(); render();
   toast((mine?"✅ You drafted ":"✔ Off the board: ")+BY_ID[id].name);
 }
 function pickByName(mine){
@@ -480,7 +494,7 @@ function undo(){
   if(!ST.drafted.length) return;
   const last=ST.drafted.pop();
   if(ST.mine[ST.mine.length-1]===last) ST.mine.pop();
-  save(); render(); toast("Undid "+(BY_ID[last]?BY_ID[last].name:"pick"));
+  PLAN=null; save(); render(); toast("Undid "+(BY_ID[last]?BY_ID[last].name:"pick"));
 }
 function undoPlayer(id){
   const i=ST.drafted.indexOf(id);
@@ -488,11 +502,11 @@ function undoPlayer(id){
   ST.drafted.splice(i,1);
   const j=ST.mine.indexOf(id);
   if(j!==-1) ST.mine.splice(j,1);
-  save(); render();
+  PLAN=null; save(); render();
   toast("↩ Put "+(BY_ID[id]?BY_ID[id].name:"player")+" back on the board");
 }
 function resetDraft(){
-  if(confirm("Clear the whole draft and start fresh?")){ ST.drafted=[]; ST.mine=[]; save(); render(); }
+  if(confirm("Clear the whole draft and start fresh?")){ ST.drafted=[]; ST.mine=[]; PLAN=null; save(); render(); }
 }
 function toast(m){const t=document.getElementById('toast');t.textContent=m;
   t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1500);}
@@ -506,8 +520,8 @@ function candidateByeClash(p){
     .filter(q=>q && q.pos===p.pos && q.bye===p.bye);
 }
 // Summarize your roster's byes: same-position pileups (critical) and heavy weeks.
-function byeReport(){
-  const mine=ST.mine.map(id=>BY_ID[id]).filter(p=>p&&p.bye);
+function byeReport(playersOpt){
+  const mine=(playersOpt||ST.mine.map(id=>BY_ID[id])).filter(p=>p&&p.bye);
   const byWeek={};
   mine.forEach(p=>{(byWeek[p.bye]=byWeek[p.bye]||[]).push(p);});
   const conflicts=[], heavy=[], weekCounts=[];
@@ -521,6 +535,79 @@ function byeReport(){
     if(players.length>=4) heavy.push({wk,n:players.length});
   });
   return {conflicts, heavy, weekCounts};
+}
+
+// ---- Draft Planner: Monte-Carlo look-ahead (ADP-based, no ML) ----
+let PLAN=null;
+function randn(){ let u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+function simulateDraft(N){
+  const teams=TEAMS, rounds=ROUNDS, totalPicks=teams*rounds, slot=mySlot();
+  const start=currentOverall();
+  const myPickOveralls=[];
+  for(let o=start;o<=totalPicks;o++) if(slotOf(o)===slot) myPickOveralls.push(o);
+  if(!myPickOveralls.length) return null;
+  const alive0=BOARD.filter(p=>!ST.drafted.includes(p.id));
+  const idxCount=myPickOveralls.map(()=>({}));   // per-my-pick: playerId -> times chosen
+  const NOISE=7;
+  for(let s=0;s<N;s++){
+    const taken=new Set(ST.drafted);
+    // opponents draft by ADP + noise (K/DEF sink naturally via their high ADP)
+    const pri=alive0.map(p=>({id:p.id, k:(p.adp||9999)+randn()*NOISE})).sort((a,b)=>a.k-b.k);
+    let ptr=0;
+    const myCount={}; let mi=0;
+    for(let o=start;o<=totalPicks;o++){
+      const round=Math.floor((o-1)/teams)+1, late=round>=rounds-1;
+      if(slotOf(o)===slot){
+        let best=null,bs=-1e9;
+        for(const q of alive0){
+          if(taken.has(q.id)) continue;
+          if((q.pos==='K'||q.pos==='DEF')&&!late) continue;
+          const need=needState(q.pos,myCount);
+          if(need==='full') continue;
+          const sc=q.vbd+NEED_BONUS[need];
+          if(sc>bs){bs=sc;best=q;}
+        }
+        if(best){taken.add(best.id);myCount[best.pos]=(myCount[best.pos]||0)+1;
+          idxCount[mi][best.id]=(idxCount[mi][best.id]||0)+1;}
+        mi++;
+      } else {
+        while(ptr<pri.length && taken.has(pri[ptr].id)) ptr++;
+        if(ptr<pri.length){ taken.add(pri[ptr].id); ptr++; }
+      }
+    }
+  }
+  // summarize
+  const picks=myPickOveralls.map((o,i)=>{
+    const tally=idxCount[i];
+    const choices=Object.keys(tally).map(id=>({id,name:BY_ID[id].name,pos:BY_ID[id].pos,
+      pct:Math.round(100*tally[id]/N)})).sort((a,b)=>b.pct-a.pct).slice(0,3);
+    return {overall:o, round:Math.floor((o-1)/teams)+1, choices};
+  });
+  const projected=picks.map(pk=>pk.choices[0]?BY_ID[pk.choices[0].id]:null).filter(Boolean);
+  return {picks, bye:byeReport(projected)};
+}
+function runPlanner(){ PLAN=simulateDraft(150); renderPlanner(); }
+function renderPlanner(){
+  const el=document.getElementById('planner'); if(!el) return;
+  if(!PLAN){ el.className='empty';
+    el.innerHTML='Tap “Project my likely draft” to simulate the rest of the draft and see who’s likely to reach you — plus your projected bye map.'; return; }
+  el.className='';
+  const detail=document.getElementById('plannerDetail').checked;
+  let h=`<p class="hint">From ADP with ${TEAMS} teams, your spot #${mySlot()}, ${SCORING_LABEL[SCORING]}, assuming everyone drafts sharply. Odds, not guarantees — re-run after picks or setting changes.</p>`;
+  PLAN.picks.forEach(pk=>{
+    if(!pk.choices.length) return;
+    h+=`<div class="planrow"><span class="planpick">Pick #${pk.overall} <small>(Rd ${pk.round})</small></span>`;
+    const list = detail ? pk.choices : pk.choices.slice(0,1);
+    h+=list.map(c=>`<span class="planopt"><span class="pos ${c.pos}" title="${POSFULL[c.pos]}">${c.pos}</span> ${c.name}${detail?` <b>${c.pct}%</b>`:''}</span>`).join('');
+    h+=`</div>`;
+  });
+  const rep=PLAN.bye;
+  h+='<div class="byebox"><h3>Projected bye weeks</h3>';
+  if(rep.conflicts.length) rep.conflicts.forEach(c=>h+=`<div class="byewarn">⚠️ Week ${c.wk}: your projected team has ${c.players.length} ${c.pos}s off (${c.players.map(p=>p.name).join(' & ')}) — steer around stacking this week.</div>`);
+  if(!rep.conflicts.length) h+='<div class="byeok">✓ Your projected team spreads its byes cleanly.</div>';
+  h+='<div class="byechips">'+rep.weekCounts.map(w=>`<span class="byechip ${w.n>=2?'hot':''}">Wk ${w.wk} <b>${w.n}</b></span>`).join('')+'</div></div>';
+  el.innerHTML=h;
 }
 
 // ---- glossary ----
@@ -646,6 +733,7 @@ function render(){
   document.getElementById('count').textContent=`${rows.filter(p=>!drafted.has(p.id)).length} available`;
   document.getElementById('foot').textContent =
     `Board: real FantasyPros consensus rankings · ${BOARD.length} players · your draft is saved in this browser.`;
+  renderPlanner();
 }
 
 let SORT={k:"vbd",dir:-1};
@@ -655,17 +743,17 @@ recomputeBoard();   // derive Value/tiers/ranks for the current scoring + team c
 document.querySelectorAll('th.s').forEach(th=>{
   th.onclick=()=>{const k=th.dataset.k;SORT.dir=(SORT.k===k)?-SORT.dir:(k==='name'?1:-1);SORT.k=k;render();};
 });
-document.getElementById('slot').addEventListener('input',()=>{ST.slot=mySlot();save();render();});
+document.getElementById('slot').addEventListener('input',()=>{ST.slot=mySlot();PLAN=null;save();render();});
 document.getElementById('scoring').addEventListener('change',()=>{
   SCORING=document.getElementById('scoring').value; ST.scoring=SCORING;
-  save(); setActivePts(); recomputeBoard(); render();
+  PLAN=null; save(); setActivePts(); recomputeBoard(); render();
 });
 document.getElementById('teams').addEventListener('input',()=>{
   let t=Math.round(+document.getElementById('teams').value||13);
   t=Math.max(4,Math.min(20,t)); TEAMS=t; ST.teams=t;
   const s=document.getElementById('slot');
   s.max=TEAMS; if(+s.value>TEAMS){s.value=TEAMS; ST.slot=TEAMS;}
-  save(); recomputeBoard(); render();
+  PLAN=null; save(); recomputeBoard(); render();
 });
 document.getElementById('quick').addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault();pickByName(e.shiftKey);}
