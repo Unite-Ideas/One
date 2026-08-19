@@ -207,6 +207,7 @@
     <label for="slot">My spot</label>
     <input id="slot" type="number" min="1" value="1" inputmode="numeric">
   </div>
+  <button id="hdrReset" class="btn-off" onclick="resetQuick()" title="Clear all picks instantly and start a fresh mock draft">↺ Reset</button>
   <div class="clock" id="clock"></div>
 </header>
 
@@ -541,6 +542,9 @@ function undoPlayer(id){
 }
 function resetDraft(){
   if(confirm("Clear the whole draft and start fresh?")){ ST.drafted=[]; ST.mine=[]; PLAN=null; save(); render(); }
+}
+function resetQuick(){   // instant reset for rapid mock drafts (no confirm)
+  ST.drafted=[]; ST.mine=[]; PLAN=null; save(); render(); toast("↺ Draft reset — fresh board");
 }
 function toast(m){const t=document.getElementById('toast');t.textContent=m;
   t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1500);}
