@@ -29,7 +29,7 @@ def build_board() -> list:
     merged: dict = {}
     order: list = []
     for sc in ("ppr", "half_ppr", "standard"):
-        for r in sources.fetch_board_rows(scoring=sc):
+        for r in sources.fetch_board_rows(scoring=sc, superflex=True):  # this league is superflex
             pid = r["player_id"]
             if pid not in merged:
                 merged[pid] = {

@@ -133,16 +133,22 @@ def _build_sleeper_index(ids_rows: List[Dict[str, str]]):
     return by_fpid, by_namepos
 
 
-def fetch_board_rows(scoring: str = "ppr") -> List[Dict[str, object]]:
-    """Fetch + assemble real board rows (not yet written to disk)."""
+def fetch_board_rows(scoring: str = "ppr", superflex: bool = False) -> List[Dict[str, object]]:
+    """Fetch + assemble real board rows (not yet written to disk).
+
+    ``superflex`` uses FantasyPros' SUPERFLEX consensus (ecr_type 'rsf') for the
+    overall draft ordering/ADP, which values QBs correctly (they go early), vs
+    the 1-QB 'ro' list where QBs rank low.
+    """
     fpecr = _download_csv(FPECR_URL)
     ids = _download_csv(IDS_URL)
     by_fpid, by_namepos = _build_sleeper_index(ids)
 
-    # Offensive skill players from the redraft-overall consensus list.
+    # Offensive skill players from the consensus list — superflex or 1-QB overall.
+    overall_type = "rsf" if superflex else "ro"
     offense = [
         r for r in fpecr
-        if r.get("ecr_type") == "ro" and (r.get("pos") or "").upper() in OFFENSE
+        if r.get("ecr_type") == overall_type and (r.get("pos") or "").upper() in OFFENSE
     ]
     # Kickers and defenses from their own redraft position lists.
     kickers = [r for r in fpecr if r.get("page_type") == "redraft-k"]
@@ -222,9 +228,10 @@ def write_projection_csv(rows: List[Dict[str, object]], out: Optional[Path] = No
     return out
 
 
-def fetch(scoring: str = "ppr", out: Optional[Path] = None) -> Tuple[Path, int, int]:
+def fetch(scoring: str = "ppr", out: Optional[Path] = None,
+          superflex: bool = False) -> Tuple[Path, int, int]:
     """Fetch real data and write a projection CSV. Returns (path, total, mapped)."""
-    rows = fetch_board_rows(scoring=scoring)
+    rows = fetch_board_rows(scoring=scoring, superflex=superflex)
     path = write_projection_csv(rows, out)
     mapped = sum(1 for r in rows if r.get("sleeper_id"))
     return path, len(rows), mapped

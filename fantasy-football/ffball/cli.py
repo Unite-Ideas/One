@@ -393,7 +393,7 @@ def cmd_fetch(args) -> int:
     from . import sources
     print("Fetching live data from GitHub-hosted nflverse/dynastyprocess ...")
     try:
-        path, total, mapped = sources.fetch(scoring=args.scoring)
+        path, total, mapped = sources.fetch(scoring=args.scoring, superflex=args.superflex)
     except RuntimeError as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -450,6 +450,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     pf = sub.add_parser("fetch", help="pull real FantasyPros ECR + Sleeper ids from GitHub")
     pf.add_argument("--scoring", default="ppr", help="points model: ppr|half_ppr|standard")
+    pf.add_argument("--superflex", action="store_true",
+                    help="use superflex consensus ranking (QBs valued correctly)")
     pf.set_defaults(func=cmd_fetch)
 
     pw = sub.add_parser("serve", help="run the web dashboard")

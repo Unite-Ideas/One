@@ -224,7 +224,8 @@ def recommend(
         starters = state.league.starters.get(pos, 0)
         if pos == "QB" and superflex:
             starters += 1                 # superflex effectively needs a 2nd QB
-        mustfill = 60.0 if (pos == "QB" and superflex) else _MUSTFILL_BONUS.get(pos, 40.0)
+        # Superflex QBs are premium and drain fast — prioritize them aggressively.
+        mustfill = 90.0 if (pos == "QB" and superflex) else _MUSTFILL_BONUS.get(pos, 40.0)
         capacity = max(starters, _startable_capacity(pos, state.league))
         if have < starters:
             # An unfilled starting slot: urgent (scaled by how scarce the pos is).
