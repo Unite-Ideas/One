@@ -77,12 +77,24 @@ def _interp(anchors: List[Tuple[int, float]], rank: int) -> float:
     return anchors[-1][1]
 
 
+# The Final Draft Lifegroup runs TE-premium scoring: TEs get +0.5 points per
+# reception on top of base PPR. Estimated TE receptions by positional rank so we
+# can add that premium to TE projections.
+TE_REC_BONUS = 0.5
+TE_REC_ANCHORS: List[Tuple[int, float]] = [
+    (1, 90), (3, 76), (6, 66), (12, 52), (18, 42), (24, 32), (36, 22),
+]
+
+
 def points_for(pos: str, pos_rank: int, scoring: str = "ppr") -> float:
     table = POINTS_ANCHORS.get(scoring, POINTS_ANCHORS["ppr"])
     anchors = table.get(pos)
     if not anchors:
         return 0.0
-    return round(_interp(anchors, pos_rank), 1)
+    pts = _interp(anchors, pos_rank)
+    if pos == "TE" and TE_REC_BONUS:
+        pts += TE_REC_BONUS * _interp(TE_REC_ANCHORS, pos_rank)   # TE reception premium
+    return round(pts, 1)
 
 
 # --- fetching --------------------------------------------------------------
