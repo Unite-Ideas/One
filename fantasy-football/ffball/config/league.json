@@ -11,7 +11,9 @@
   "scoring_notes": "Full PPR (rec 1.0) plus TE premium bonus_rec_te 0.5 -> TEs score 1.5 per catch",
   "bonus_rec_te": 0.5,
   "my_draft_slot": 2,
-  "roster_positions": ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "FLEX", "K", "DEF", "BN", "BN", "BN", "BN", "BN"],
+  "superflex": true,
+  "roster_notes": "SUPERFLEX league, NO kickers or defenses. Start up to 2 QBs -> QBs are premium.",
+  "roster_positions": ["QB", "RB", "RB", "WR", "WR", "TE", "FLEX", "FLEX", "SUPER_FLEX", "BN", "BN", "BN", "BN", "BN"],
   "draft_type": "snake",
-  "rounds": 15
+  "rounds": 14
 }

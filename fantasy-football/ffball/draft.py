@@ -198,20 +198,37 @@ def recommend(
     total_rounds = state.league.total_roster_size()
     late = round_no >= total_rounds - 1
 
+    superflex = getattr(state.league, "super_flex", 0) > 0
+    # Positions with an actual roster slot (starters + flex/superflex-eligible).
+    # In leagues without kickers/defenses this excludes them entirely.
+    draftable = set(state.league.starters)
+    if state.league.flex:
+        draftable |= set(state.league.flex_weights)
+    if superflex:
+        draftable |= set(getattr(state.league, "super_flex_weights", {}))
+
     suggestions: List[Suggestion] = []
     for p in available:
         pos = p.position
+        if pos not in draftable:
+            continue  # no roster slot for this position in this league
         if pos in ("K", "DEF") and not late:
             continue
         have = counts.get(pos, 0)
-        if have >= caps.get(pos, 99):
+        hard_cap = caps.get(pos, 99)
+        if pos == "QB" and superflex:
+            hard_cap = max(hard_cap, 3)   # superflex: you may roster up to 3 QBs
+        if have >= hard_cap:
             continue  # never suggest a position you truly can't use another of
 
         starters = state.league.starters.get(pos, 0)
-        capacity = _startable_capacity(pos, state.league)
+        if pos == "QB" and superflex:
+            starters += 1                 # superflex effectively needs a 2nd QB
+        mustfill = 60.0 if (pos == "QB" and superflex) else _MUSTFILL_BONUS.get(pos, 40.0)
+        capacity = max(starters, _startable_capacity(pos, state.league))
         if have < starters:
             # An unfilled starting slot: urgent (scaled by how scarce the pos is).
-            mult, bonus, need = 1.0, _MUSTFILL_BONUS.get(pos, 40.0), "must-fill"
+            mult, bonus, need = 1.0, mustfill, "must-fill"
         elif have < capacity:
             # Still filling startable spots (your FLEX): valuable depth.
             mult, bonus, need = _FLEX_FILL_MULT, _FLEX_DEPTH_BONUS, "depth"
