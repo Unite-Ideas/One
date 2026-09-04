@@ -122,6 +122,28 @@
   .stealrow:last-child{border-bottom:none}
   .stealrow .v{color:var(--turf);font-weight:700}
   .stealrow small{color:var(--faint)}
+  /* view toggle + season manager */
+  .viewbar{display:flex;gap:8px;padding:12px 20px 0;max-width:1500px;margin:0 auto}
+  .vbtn{font-family:"Archivo",sans-serif;font-weight:700;font-size:13px;letter-spacing:.4px;
+    text-transform:uppercase;padding:9px 16px;border-radius:9px;background:var(--panel);
+    border:1px solid var(--line);color:var(--dim)}
+  .vbtn.active{background:var(--turf);color:#052012;border-color:var(--turf)}
+  .lrow{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line)}
+  .lslot{font:700 11px "IBM Plex Mono",monospace;color:var(--dim);min-width:74px}
+  .lrow .nm{flex:1}
+  .lrow .pts{font-variant-numeric:tabular-nums;color:var(--turf);font-weight:600}
+  .ltot{margin-top:10px;font-weight:700}
+  .benchline{margin-top:10px;color:var(--dim);font-size:12.5px}
+  .wrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .wrow .g{color:var(--turf);font-weight:700;min-width:44px;text-align:right}
+  .wrow .drop{color:var(--faint);font-size:12px}
+  .traderow{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+  .traderow input{width:100%}
+  .verdict{font-family:"Archivo",sans-serif;font-weight:800;font-size:16px;padding:10px 12px;
+    border-radius:9px;margin-top:6px}
+  .v-good{background:#0f2416;border:1px solid #1f6b3f;color:#8fe3b0}
+  .v-even{background:#101f2e;border:1px solid #24506e;color:#9ecbff}
+  .v-bad{background:#2a1416;border:1px solid #7a2b2b;color:#ffb4ab}
   .rec .btns{display:flex;gap:9px;padding:0 14px 14px}
   .rec .btns button{flex:1;padding:9px;font-size:13.5px}
   .empty{color:var(--dim);font-size:13.5px;text-align:center;padding:20px 0}
@@ -211,6 +233,12 @@
   <div class="clock" id="clock"></div>
 </header>
 
+<div class="viewbar">
+  <button class="vbtn active" id="vbDraft" onclick="setView('draft')">📋 Draft War Room</button>
+  <button class="vbtn" id="vbSeason" onclick="setView('season')">📅 Season Manager</button>
+</div>
+
+<div id="draftView">
 <div class="banner">
   <span class="lead">👋 New to fantasy football?</span> This page tells you <b>who to draft and why</b>, in plain English.
   Each turn: read the top card, glance at its colored badge, then click <b>“Draft to my team”</b> on your pick —
@@ -286,6 +314,47 @@
     </div>
   </div>
 </div>
+</div><!-- /draftView -->
+
+<div id="seasonView" hidden>
+  <div class="banner">
+    <span class="lead">📅 Season Manager</span> After the draft, this runs your team all year using the exact players you drafted.
+    It sets your <b>best starting lineup</b>, finds <b>waiver-wire upgrades</b> (free agents who'd score you more points),
+    and <b>grades any trade</b>. Set the week to bench players on their bye.
+  </div>
+  <div class="wrap">
+    <div>
+      <div class="card">
+        <h2>✅ Best Starting Lineup
+          <span style="float:right;font-size:13px;color:var(--dim);font-weight:400">Week
+          <input id="seasonWeek" type="number" min="1" max="18" placeholder="—" style="width:52px" inputmode="numeric"></span></h2>
+        <p class="hint">Your highest-scoring legal lineup. This is who you should <b>start</b>. Fill in a week to auto-bench anyone on bye that week.</p>
+        <div id="lineup"></div>
+      </div>
+      <div class="card">
+        <h2>➕ Waiver-Wire Targets</h2>
+        <p class="hint">Free agents (players <b>nobody drafted</b>) who would <b>raise your starting-lineup points</b>. <b>+pts</b> = points gained after dropping your listed bench player.</p>
+        <div id="waivers"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>🔁 Trade Analyzer</h2>
+        <p class="hint">Type player names you'd <b>give</b> and <b>get</b> (comma-separated). It grades the trade by the <b>swing in your starting-lineup points</b> — positive means you come out ahead.</p>
+        <div class="traderow">
+          <label>You give:<input id="tradeGive" placeholder="e.g. type a name on your team"></label>
+          <label>You get:<input id="tradeGet" placeholder="e.g. type a name you'd receive"></label>
+          <button class="btn-me" onclick="runTrade()">⚖️ Grade this trade</button>
+        </div>
+        <div id="tradeResult"></div>
+      </div>
+      <div class="card">
+        <h2>🏈 Your Roster</h2>
+        <div id="seasonRoster"></div>
+      </div>
+    </div>
+  </div>
+</div><!-- /seasonView -->
 <p class="footnote" id="foot"></p>
 <div class="toast" id="toast"></div>
 
@@ -865,6 +934,137 @@ function render(){
   renderPlanner();
 }
 
+// ===================================================================
+// SEASON MANAGER — lineup optimizer, waivers, trade analyzer.
+// Ports ffball/season.py to the browser. Everything reduces to the best
+// legal STARTING LINEUP a set of players can field; a waiver add is worth
+// how much it raises that lineup, a trade is worth the swing in it.
+// Uses p.pts (scoring-adjusted season points) and ST.mine as your team.
+// ===================================================================
+function lineupSlots(){
+  const slots=[];
+  for(const pos in STARTERS){ for(let i=0;i<STARTERS[pos];i++) slots.push([pos,[pos]]); }
+  for(let i=0;i<FLEX;i++)       slots.push(["FLEX",Object.keys(FLEX_WEIGHTS)]);
+  for(let i=0;i<SUPER_FLEX;i++) slots.push(["SUPERFLEX",Object.keys(SUPER_FLEX_WEIGHTS)]);
+  return slots;   // QB, RB, RB, WR, WR, TE, FLEX, FLEX, SUPERFLEX
+}
+function optimalLineup(players, week){
+  const elig=players.filter(p=>p && !(week && p.bye===week));
+  const ranked=elig.slice().sort((a,b)=>b.pts-a.pts);
+  const used=new Set(), starters=[];
+  for(const [label,pool] of lineupSlots()){
+    let pick=null;
+    for(const p of ranked){ if(used.has(p.id)||!pool.includes(p.pos)) continue; pick=p; break; }
+    if(pick) used.add(pick.id);
+    starters.push([label,pick]);
+  }
+  const bench=players.filter(p=>p && !used.has(p.id));
+  const total=Math.round(starters.reduce((s,[,p])=>s+(p?p.pts:0),0));
+  return {starters, bench, total};
+}
+function myTeam(){ return ST.mine.map(id=>BY_ID[id]).filter(Boolean); }
+function freeAgents(){
+  const drafted=new Set(ST.drafted);
+  return BOARD.filter(p=>!drafted.has(p.id)).sort((a,b)=>b.pts-a.pts);
+}
+function waiverTargets(top){
+  const my=myTeam();
+  if(!my.length) return [];
+  const base=optimalLineup(my).total;
+  const drop=my.slice().sort((a,b)=>a.pts-b.pts)[0]||null;   // weakest bench = natural drop
+  const res=[];
+  for(const fa of freeAgents().slice(0,150)){
+    const roster=my.filter(p=>!(drop&&p.id===drop.id)).concat([fa]);
+    const gain=optimalLineup(roster).total-base;
+    if(gain>0) res.push({add:fa, drop, gain:Math.round(gain)});
+  }
+  res.sort((a,b)=>b.gain-a.gain);
+  return res.slice(0, top||10);
+}
+function findPlayers(str){
+  return str.split(',').map(s=>s.trim()).filter(Boolean).map(name=>{
+    const q=name.toLowerCase();
+    return BOARD.find(p=>p.name.toLowerCase()===q) || BOARD.find(p=>p.name.toLowerCase().includes(q)) || null;
+  });
+}
+function evaluateTrade(give, get){
+  const giveIds=new Set(give.filter(Boolean).map(p=>p.id));
+  const my=myTeam();
+  const before=optimalLineup(my).total;
+  const after=optimalLineup(my.filter(p=>!giveIds.has(p.id)).concat(get.filter(Boolean))).total;
+  const swing=Math.round(after-before);
+  let verdict, cls;
+  if(swing>=8){verdict="Clear win — accept it";cls="v-good";}
+  else if(swing>=2){verdict="Slight win — worth it";cls="v-good";}
+  else if(swing>-2){verdict="Roughly even — a wash";cls="v-even";}
+  else if(swing>-8){verdict="Slight loss — lean pass";cls="v-bad";}
+  else {verdict="Clear loss — reject it";cls="v-bad";}
+  return {swing, verdict, cls};
+}
+function seasonWeek(){ const v=+document.getElementById('seasonWeek').value; return v>=1?v:null; }
+function renderSeason(){
+  const my=myTeam(), wk=seasonWeek();
+  // --- best starting lineup ---
+  const lb=document.getElementById('lineup');
+  if(!my.length){
+    lb.innerHTML='<div class="empty">No players yet. Draft your team in the <b>War Room</b> tab, then come back here to run your season.</div>';
+  }else{
+    const lu=optimalLineup(my, wk);
+    lb.innerHTML = lu.starters.map(([label,p])=>`<div class="lrow">
+        <span class="lslot">${label}</span>
+        <span class="nm">${p?`<span class="pos ${p.pos}" title="${POSFULL[p.pos]}">${p.pos}</span> ${p.name}${teamName(p.team)?` · ${teamName(p.team)}`:''}${wk&&p.bye===wk?' <span style="color:var(--reach)">(BYE)</span>':''}`:'<span style="color:var(--faint)">— nobody eligible —</span>'}</span>
+        <span class="pts">${p?Math.round(p.pts):''}</span>
+      </div>`).join('')
+      + `<div class="ltot">Projected starting points: <span style="color:var(--turf)">${lu.total}</span></div>`
+      + (lu.bench.length?`<div class="benchline">Bench (sit): ${lu.bench.slice().sort((a,b)=>b.pts-a.pts).map(p=>`${p.name} (${p.pos})`).join(' · ')}</div>`:'');
+  }
+  // --- waiver targets ---
+  const wb=document.getElementById('waivers');
+  if(!my.length){ wb.innerHTML='<div class="empty">Draft your team first.</div>'; }
+  else{
+    const tg=waiverTargets(10);
+    wb.innerHTML = tg.length? tg.map(t=>`<div class="wrow">
+        <span class="pos ${t.add.pos}" title="${POSFULL[t.add.pos]}">${t.add.pos}</span>
+        <span style="flex:1">${t.add.name}${teamName(t.add.team)?` · ${teamName(t.add.team)}`:''}
+          <span class="drop">drop ${t.drop?t.drop.name:'—'}</span></span>
+        <span class="g">+${t.gain}</span>
+      </div>`).join('')
+      : '<div class="empty">No upgrades available — your starters already out-score every free agent. (Free agents are players nobody drafted.)</div>';
+  }
+  // --- roster ---
+  const rb=document.getElementById('seasonRoster');
+  const order={QB:0,RB:1,WR:2,TE:3};
+  const sorted=my.slice().sort((a,b)=>(order[a.pos]-order[b.pos])||(b.pts-a.pts));
+  rb.innerHTML = my.length? '<ul class="roster">'+sorted.map(p=>`<li>
+      <span><span class="pos ${p.pos}" title="${POSFULL[p.pos]}">${p.pos}</span> ${p.name}</span>
+      <span class="r">${Math.round(p.pts)} pts · bye ${p.bye||'-'}</span></li>`).join('')+'</ul>'
+    : '<div class="empty">No players yet.</div>';
+}
+function runTrade(){
+  const give=findPlayers(document.getElementById('tradeGive').value);
+  const get=findPlayers(document.getElementById('tradeGet').value);
+  const tr=document.getElementById('tradeResult');
+  if(!give.filter(Boolean).length && !get.filter(Boolean).length){
+    tr.innerHTML='<div class="empty">Type at least one player on each side to grade a trade.</div>'; return;
+  }
+  const ev=evaluateTrade(give,get);
+  const g=give.filter(Boolean).map(p=>p.name).join(', ')||'—';
+  const gt=get.filter(Boolean).map(p=>p.name).join(', ')||'—';
+  const miss=[...give,...get].some(p=>!p);
+  tr.innerHTML=`<div class="verdict ${ev.cls}">${ev.verdict}<span style="float:right">${ev.swing>=0?'+':''}${ev.swing} pts</span></div>
+    <p class="hint">Give <b>${g}</b> → Get <b>${gt}</b>. The swing is the change in your best starting-lineup points.</p>
+    ${miss?'<div class="warn" style="margin-top:6px">⚠️ Couldn’t match one of those names on the board — check the spelling.</div>':''}`;
+}
+function setView(v){
+  const draft=(v!=='season');
+  document.getElementById('draftView').hidden=!draft;
+  document.getElementById('seasonView').hidden=draft;
+  document.getElementById('vbDraft').classList.toggle('active',draft);
+  document.getElementById('vbSeason').classList.toggle('active',!draft);
+  document.getElementById('clock').style.visibility = draft ? 'visible' : 'hidden';
+  if(!draft) renderSeason();
+}
+
 let SORT={k:"vbd",dir:-1};
 document.getElementById('slot').max = TEAMS;
 setActivePts();     // load points for the chosen scoring
@@ -887,5 +1087,8 @@ document.getElementById('teams').addEventListener('input',()=>{
 document.getElementById('quick').addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault();pickByName(e.shiftKey);}
 });
+document.getElementById('seasonWeek').addEventListener('input',renderSeason);
+['tradeGive','tradeGet'].forEach(id=>document.getElementById(id)
+  .addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault();runTrade();} }));
 render();
 </script>
