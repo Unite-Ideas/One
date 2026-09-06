@@ -324,9 +324,10 @@
 
 <div id="seasonView" hidden>
   <div class="banner">
-    <span class="lead">📅 Season Manager</span> After the draft, this runs your team all year using the exact players you drafted.
+    <span class="lead">📅 Season Manager</span> Running your <b>real Sleeper team</b> (auto-loaded from the finished draft).
     It sets your <b>best starting lineup</b>, finds <b>waiver-wire upgrades</b> (free agents who'd score you more points),
     and <b>grades any trade</b>. Set the week to bench players on their bye.
+    <button class="btn-off" style="margin-left:10px" onclick="loadSleeperTeam(true)" title="Re-sync your official Sleeper roster, replacing any changes made here">↻ Reload Sleeper team</button>
   </div>
   <div class="wrap">
     <div>
@@ -371,6 +372,18 @@ const DATA = JSON.parse(document.getElementById('data').textContent);
 // This league has NO kickers or defenses — drop them so they can't be drafted.
 const BOARD = DATA.board.filter(p=>p.pos!=="K" && p.pos!=="DEF");
 const BY_ID = {}; BOARD.forEach(p=>BY_ID[p.id]=p);
+// Official post-draft roster snapshot from Sleeper (The Final Draft Lifegroup).
+// `mine` = your 14 picks; `drafted` = every player taken across all 10 teams
+// (so the Season Manager's free-agent pool is truly the undrafted players).
+const SNAP_VER = "2026-draft-final";
+const SNAPSHOT = {"teams":10,"mine":["11563","11583","12506","12519","13279","13286","3257","4034","6819","8112","8136","8183","9224","9493"],"drafted":["10229","10232","11604","12522","12526","13287","3294","4046","4199","5022","7526","7567","8110","8228","11559","11581","11628","12512","12518","421","4217","4892","6794","7021","7525","8142","8155","9221","10859","11560","1166","3163","3214","4037","5846","5859","5892","6790","7564","7594","8138","9754","11563","11583","12506","12519","13279","13286","3257","4034","6819","8112","8136","8183","9224","9493","11564","12489","12533","12534","13294","5012","6804","6813","7553","7569","7588","8137","9228","9487","11586","12507","12514","2216","6904","7523","7611","8131","8161","8167","9226","9484","9488","9500","11566","11620","11631","11635","12481","12527","12530","1466","2449","4984","8148","8150","9756","9758","1373","2133","4866","4943","4983","5967","6770","6806","7002","7543","8144","8151","9480","9997","10222","10236","11584","11632","3198","4881","5045","5844","5849","5850","5927","6797","7547","8408","12490","12508","12517","12529","12545","13281","5870","6786","6801","7600","8130","8146","9509","96"]};
+function loadSleeperTeam(force){
+  if(!force && !confirm("Load your official Sleeper draft team? This replaces the picks currently in this app.")) return;
+  ST.drafted=SNAPSHOT.drafted.slice(); ST.mine=SNAPSHOT.mine.slice();
+  ST.teams=SNAPSHOT.teams; TEAMS=SNAPSHOT.teams; document.getElementById('teams').value=TEAMS;
+  ST.snap=SNAP_VER; PLAN=null; save(); recomputeBoard(); render(); setView('season');
+  toast("✅ Loaded your Sleeper team");
+}
 let TEAMS = DATA.meta.teams || 13;        // live-adjustable in the UI
 let SCORING = DATA.meta.scoring || "half_ppr";  // live-adjustable in the UI
 const SCORING_LABEL = {ppr:"Full PPR", half_ppr:"Half-PPR", standard:"Standard"};
@@ -436,6 +449,12 @@ function load(){ try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){r
 function save(){ localStorage.setItem(KEY, JSON.stringify(ST)); }
 ST.drafted = ST.drafted || [];   // ids in pick order
 ST.mine    = ST.mine    || [];   // ids you drafted
+// First time on the post-draft version: auto-load the real Sleeper rosters,
+// replacing any leftover mock-draft picks. Runs once (guarded by SNAP_VER).
+if(ST.snap!==SNAP_VER){
+  ST.drafted=SNAPSHOT.drafted.slice(); ST.mine=SNAPSHOT.mine.slice();
+  ST.teams=SNAPSHOT.teams; ST.snap=SNAP_VER; save();
+}
 if(ST.slot) document.getElementById('slot').value = ST.slot;
 if(ST.teams) TEAMS = ST.teams;
 document.getElementById('teams').value = TEAMS;
