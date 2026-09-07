@@ -5,14 +5,22 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
-  /* Draft War Room — a dark broadcast console. Single, deliberate dark world;
-     every color painted explicitly so it holds on any host ground. */
+  /* Draft War Room — soft neumorphic light theme on a warm cream ground.
+     Surfaces share the background color and lift via dual shadows (light
+     highlight top-left, soft shadow bottom-right); text stays dark for
+     readability. A few frosted-glass touches. One deliberate light world. */
   :root{
-    --bg:#0c0f14; --panel:#141922; --panel2:#0f141c; --line:#242c39;
-    --ink:#eef2f8; --dim:#93a0b4; --faint:#5b6676;
-    --turf:#43d17f; --turf-dim:#2b6b47;
-    --value:#37b24d; --reach:#d1a017; --scarce:#e2682c; --solid:#3d8bff;
-    --mine:#12251a; --mine-line:#1f6b3f;
+    --bg:#e9e7e0; --panel:#e9e7e0; --panel2:#e4e1d8; --line:#d3cfc4;
+    --ink:#37414f; --dim:#6c7688; --faint:#9aa1ad;
+    --turf:#1f9d63; --turf-dim:#9ad6b6;
+    --value:#2e9e4f; --reach:#bd8710; --scarce:#cf6327; --solid:#2f6fe0;
+    --mine:#dcefe2; --mine-line:#7fc79f;
+    /* neumorphism shadow pair + reusable elevations */
+    --sh-d:#c6c2b7; --sh-l:#fefdf8;
+    --nu-up:6px 6px 13px var(--sh-d), -6px -6px 13px var(--sh-l);
+    --nu-up-sm:4px 4px 9px var(--sh-d), -4px -4px 9px var(--sh-l);
+    --nu-in:inset 4px 4px 8px var(--sh-d), inset -4px -4px 8px var(--sh-l);
+    --nu-in-sm:inset 3px 3px 6px var(--sh-d), inset -3px -3px 6px var(--sh-l);
   }
   *{box-sizing:border-box}
   html,body{margin:0}
@@ -237,6 +245,94 @@
     font-weight:700;opacity:0;transition:opacity .2s;pointer-events:none;z-index:40}
   .toast.show{opacity:1}
   .footnote{color:var(--faint);font-size:11.5px;text-align:center;padding:0 20px 30px}
+
+  /* ===================================================================
+     NEUMORPHISM THEME LAYER — soft cream UI. Appended so these rules win
+     over the originals. Surfaces = background color, lifted by dual
+     shadows; a little frosted glass on the sticky bars. Data stays crisp.
+     =================================================================== */
+  body{background:
+    radial-gradient(1200px 600px at 15% -10%, #f2f0ea, transparent),
+    radial-gradient(1000px 500px at 100% 110%, #e2dfd6, transparent), var(--bg);
+    background-attachment:fixed}
+  a{color:var(--solid)}
+  /* header + viewbar: frosted glass */
+  header{background:rgba(247,245,239,.72);-webkit-backdrop-filter:blur(14px) saturate(1.3);
+    backdrop-filter:blur(14px) saturate(1.3);border-bottom:1px solid rgba(255,255,255,.6);
+    box-shadow:0 6px 20px -12px var(--sh-d)}
+  .brand{color:var(--ink)}
+  .viewbar{padding:14px 20px 2px}
+  .vbtn{background:var(--panel);border:none;color:var(--dim);box-shadow:var(--nu-up-sm);border-radius:14px}
+  .vbtn:hover{color:var(--ink)}
+  .vbtn.active{background:var(--turf);color:#fff;box-shadow:var(--nu-in-sm),0 4px 12px -4px rgba(31,157,99,.6)}
+  /* soft-inset input pods */
+  .slotwrap{background:var(--panel);border:none;box-shadow:var(--nu-in-sm);border-radius:14px}
+  .slotwrap input,.slotwrap select{color:var(--turf)}
+  .slotwrap select option{background:#f3f1ea;color:var(--ink)}
+  /* cards + banners: raised, rounder, borderless */
+  .card{background:var(--panel);border:none;border-radius:20px;box-shadow:var(--nu-up)}
+  .banner{background:var(--panel);border:none;border-left:4px solid var(--turf);
+    border-radius:16px;box-shadow:var(--nu-up)}
+  .term{background:var(--panel);border:none;border-radius:14px;box-shadow:var(--nu-up-sm)}
+  /* controls: inputs pressed-in, buttons raised */
+  input,select,textarea{background:var(--panel);border:none;color:var(--ink);
+    box-shadow:var(--nu-in-sm);border-radius:11px}
+  button{background:var(--panel);border:none;color:var(--ink);box-shadow:var(--nu-up-sm);border-radius:11px}
+  button:hover{border:none;box-shadow:var(--nu-up-sm),0 3px 10px -5px var(--sh-d)}
+  button:active{box-shadow:var(--nu-in-sm)}
+  .btn-me{background:var(--turf);color:#fff;box-shadow:var(--nu-up-sm),0 5px 14px -6px rgba(31,157,99,.6)}
+  .btn-me:hover{filter:brightness(1.05)}
+  .btn-off{background:var(--panel);color:var(--dim)}
+  /* recommendation + generic sub-panels: gently inset */
+  .rec{background:var(--panel);border:none;border-radius:15px;box-shadow:var(--nu-in-sm)}
+  .rec.top{box-shadow:var(--nu-in-sm),inset 0 0 0 2px var(--turf-dim)}
+  .rec.top .rank{color:var(--turf)}
+  /* colored chips → soft pastels with dark ink for legibility */
+  .tag{color:#0a2a17}
+  .tag.value{background:#bfe8cb}.tag.reach{background:#f0dca6}
+  .tag.scarce{background:#f4cbb0;color:#3a1c0c}.tag.solid{background:#bcd4f7;color:#0a244d}
+  .pos{box-shadow:var(--nu-up-sm)}
+  .QB{background:#f7d6e4;color:#a83a68}.RB{background:#cdead9;color:#1f7a4d}
+  .WR{background:#d3e3f7;color:#2456a0}.TE{background:#f2e6c2;color:#8a6a12}
+  .K{background:#e3ddf5;color:#5a4aa0}.DEF{background:#f2d9d9;color:#9a4a4a}
+  /* status/info boxes → light pastels */
+  .warn,.rec .warn,.injwarn,.byewarn{background:#f6dcd8;border:1px solid #e3a49c;color:#9a3b32}
+  .rec .info.stack,.byeok{background:#d9eede;border:1px solid #93c7a8;color:#1f6b45}
+  .rec .info.cuff,.alert.tier{background:#d7e4f5;border:1px solid #9db9e0;color:#28517e}
+  .alert.run,.byenote{background:#f3e6c2;border:1px solid #d3b978;color:#7a5f16}
+  .byebox{border-top:1px solid var(--line)}
+  .byechip{background:var(--panel);border:none;box-shadow:var(--nu-up-sm);color:var(--dim)}
+  .byechip.hot{color:#9a3b32}
+  /* tables: crisp header pod, quiet rows */
+  thead th{background:var(--panel)}
+  th,td{border-bottom:1px solid var(--line)}
+  tbody tr:hover{background:#eeece4}
+  tr.mine,tr.me-row{background:var(--mine)}
+  tr.mine:hover{background:#d3e8da}
+  .vneg{color:#d0453a}
+  .mini{box-shadow:var(--nu-up-sm)}
+  /* verdict + injury + season chips → light */
+  .v-good{background:#d9eede;border:1px solid #93c7a8;color:#1c6b45}
+  .v-even{background:#d7e4f5;border:1px solid #9db9e0;color:#28517e}
+  .v-bad{background:#f6dcd8;border:1px solid #e3a49c;color:#9a3b32}
+  .inj.bad{background:#f6d7d3;color:#a5352b;border:1px solid #e0a49c}
+  .inj.q{background:#f3e6be;color:#8a6a12;border:1px solid #d3bd78}
+  .c-win{background:#d9eede;color:#1c6b45;border:1px solid #93c7a8}
+  .c-loss{background:#f6dcd8;color:#9a3b32;border:1px solid #e3a49c}
+  .c-next{background:var(--panel);color:var(--dim);border:none;box-shadow:var(--nu-up-sm)}
+  .c-up{background:#d7e4f5;color:#28517e;border:1px solid #9db9e0}
+  /* bracket + slot pods */
+  .lslot,.slot{background:var(--panel);box-shadow:var(--nu-in-sm);border:none}
+  .slot.ok{box-shadow:var(--nu-in-sm),inset 0 0 0 2px var(--turf-dim)}
+  .bteam{background:var(--panel);border:none;box-shadow:var(--nu-up-sm)}
+  .bteam.win{box-shadow:var(--nu-up-sm),inset 0 0 0 2px var(--turf-dim);color:var(--turf)}
+  .bteam.bye{box-shadow:var(--nu-in-sm);color:var(--dim)}
+  .bteam.mine,.bteam.champ{box-shadow:var(--nu-up-sm),inset 0 0 0 2px var(--mine-line)}
+  .champ{background:#f3e6be;color:#8a6a12}
+  /* misc */
+  .toast{background:var(--turf);color:#fff;box-shadow:0 8px 24px -8px rgba(31,157,99,.7)}
+  details.gloss summary,.banner .lead{color:var(--turf)}
+  .verdict{box-shadow:var(--nu-up-sm)}
 </style>
 
 <header>
