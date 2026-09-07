@@ -111,6 +111,50 @@ def build_games(week: int, season: str) -> dict:
     return games
 
 
+def build_league(week_now: int, playoff_start: int = 15) -> tuple:
+    """Full-season schedule + standings from Sleeper.
+
+    Returns (schedule, records). schedule[week] is a list of matchups
+    {a, b, a_pts, b_pts, final}; records[roster_id] is {w,l,t,pf}. A week is
+    'final' once it's behind the current week, so results fill in as the season
+    plays out.
+    """
+    schedule: dict = {}
+    records: dict = {}
+    for wk in range(1, playoff_start):
+        try:
+            mus = _get(f"https://api.sleeper.app/v1/league/{LID}/matchups/{wk}")
+        except Exception:
+            continue
+        by_mid: dict = {}
+        for m in mus:
+            by_mid.setdefault(m.get("matchup_id"), []).append(m)
+        final = wk < week_now
+        entries = []
+        for mid, pair in by_mid.items():
+            if len(pair) != 2:
+                continue
+            a, b = pair
+            ap, bp = round(a.get("points") or 0, 2), round(b.get("points") or 0, 2)
+            entries.append({"a": a["roster_id"], "b": b["roster_id"],
+                            "a_pts": ap, "b_pts": bp, "final": final})
+            for rid in (a["roster_id"], b["roster_id"]):
+                records.setdefault(rid, {"w": 0, "l": 0, "t": 0, "pf": 0.0})
+            if final:
+                records[a["roster_id"]]["pf"] += ap
+                records[b["roster_id"]]["pf"] += bp
+                if ap > bp:
+                    records[a["roster_id"]]["w"] += 1; records[b["roster_id"]]["l"] += 1
+                elif bp > ap:
+                    records[b["roster_id"]]["w"] += 1; records[a["roster_id"]]["l"] += 1
+                else:
+                    records[a["roster_id"]]["t"] += 1; records[b["roster_id"]]["t"] += 1
+        schedule[str(wk)] = entries
+    for r in records.values():
+        r["pf"] = round(r["pf"], 1)
+    return schedule, records
+
+
 def build_season() -> dict:
     state = _get("https://api.sleeper.app/v1/state/nfl")
     week, season = int(state["week"]) or 1, state["season"]
@@ -189,12 +233,17 @@ def build_season() -> dict:
 
     players = {pid: meta(pid) for pid in (rostered | set(fa_ids))}
 
+    playoff_start = int((league.get("settings", {}) or {}).get("playoff_week_start", 15))
+    schedule, records = build_league(week, playoff_start)
+
     return {
         "week": week, "season": season, "updated": date.today().isoformat(),
         "myRoster": my_rid, "myOwner": MY_OWNER,
         "teams": teams, "opp": {str(k): v for k, v in opp.items()},
         "players": players, "freeAgents": fa_ids,
         "games": build_games(week, season),
+        "schedule": schedule, "records": {str(k): v for k, v in records.items()},
+        "playoffStart": playoff_start, "playoffTeams": int((league.get("settings", {}) or {}).get("playoff_teams", 6)),
         "mine": teams[str(my_rid)]["players"] if my_rid else [],
         "drafted": sorted(rostered),
     }
