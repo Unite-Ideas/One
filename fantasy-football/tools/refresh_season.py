@@ -23,7 +23,7 @@ from __future__ import annotations
 import json
 import sys
 import urllib.request
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
@@ -47,6 +47,68 @@ def weekly_points(stats: dict, scoring: dict) -> float:
     """Exact league score for a projected stat line = stats . scoring_settings."""
     return round(sum(float(v) * scoring[k] for k, v in stats.items()
                      if k in scoring and isinstance(v, (int, float))), 1)
+
+
+# ESPN team abbreviations differ from Sleeper's in a couple of spots.
+ESPN2SLEEPER = {"WSH": "WAS", "JAC": "JAX", "LA": "LAR"}
+
+
+def _abbr(a: str) -> str:
+    return ESPN2SLEEPER.get(a, a)
+
+
+def build_games(week: int, season: str) -> dict:
+    """This week's NFL games (kickoff, venue, Vegas line/total) keyed by team.
+
+    Source: ESPN's CDN scoreboard mirror (the site.api host is proxy-blocked).
+    Each team maps to {opp, home, kick (ET), venue, city, fav, spread, total,
+    implied} so the app can show a player's game, location, and scoring outlook.
+    """
+    url = (f"https://cdn.espn.com/core/nfl/scoreboard?xhr=1&limit=50"
+           f"&week={week}&year={season}&seasontype=2")
+    try:
+        data = _get(url)
+    except Exception:
+        return {}
+    sb = data.get("content", {}).get("sbData", {}) or data.get("content", {}).get("scoreboard", {})
+    games: dict = {}
+    for ev in sb.get("events", []):
+        try:
+            comp = ev["competitions"][0]
+            sides = {x["homeAway"]: x for x in comp["competitors"]}
+            home = _abbr(sides["home"]["team"]["abbreviation"])
+            away = _abbr(sides["away"]["team"]["abbreviation"])
+            ven = comp.get("venue", {}) or {}
+            addr = ven.get("address", {}) or {}
+            city = ", ".join(x for x in (addr.get("city"), addr.get("state") or addr.get("country")) if x)
+            # kickoff in US Eastern (EDT through early November)
+            kick = ""
+            try:
+                dt = datetime.fromisoformat(ev["date"].replace("Z", "+00:00")).astimezone(timezone.utc)
+                kick = (dt - timedelta(hours=4)).strftime("%a %-I:%M %p ET")
+            except Exception:
+                pass
+            odds = (comp.get("odds") or [{}])[0]
+            details = odds.get("details") or ""            # e.g. "LAR -3.5" or "EVEN"
+            total = odds.get("overUnder")
+            fav, spread = "", None
+            parts = details.split()
+            if len(parts) == 2:
+                try:
+                    fav, spread = _abbr(parts[0]), abs(float(parts[1]))
+                except ValueError:
+                    fav, spread = "", None
+            for team, opp, is_home in ((home, away, True), (away, home, False)):
+                implied = None
+                if total is not None and spread is not None and fav:
+                    half = float(total) / 2
+                    implied = round(half + (spread / 2 if team == fav else -spread / 2), 1)
+                games[team] = {"opp": opp, "home": is_home, "kick": kick,
+                               "venue": ven.get("fullName", ""), "city": city,
+                               "fav": fav, "spread": spread, "total": total, "implied": implied}
+        except Exception:
+            continue
+    return games
 
 
 def build_season() -> dict:
@@ -132,6 +194,7 @@ def build_season() -> dict:
         "myRoster": my_rid, "myOwner": MY_OWNER,
         "teams": teams, "opp": {str(k): v for k, v in opp.items()},
         "players": players, "freeAgents": fa_ids,
+        "games": build_games(week, season),
         "mine": teams[str(my_rid)]["players"] if my_rid else [],
         "drafted": sorted(rostered),
     }
