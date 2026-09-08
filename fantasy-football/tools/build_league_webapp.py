@@ -43,8 +43,11 @@ CONFIGS = {
         "slotdefs": '[["QB",1],["RB",2],["WR",2],["TE",1],["K",1],["DEF",1]]',
         # Miami/Havana pastel-tropical glassmorphism (overrides the cream
         # neumorphic look — appended last so it wins the cascade).
+        # Lobster = a retro Havana-signage script for her header.
+        "brand_html": 'La Reina del Draft \U0001F451'
+                      '<span class="tagline">“I didn’t ask for a crown. I drafted one.” \U0001F336️</span>',
         "theme_head": '<link rel="stylesheet" href="https://fonts.googleapis.com/'
-                      'css2?family=Poppins:wght@500;600;700;800&display=swap">',
+                      'css2?family=Lobster&family=Poppins:wght@500;600;700;800&display=swap">',
         "theme_css": """
   /* ===== Lauren's theme: Miami/Havana tropical glassmorphism ===== */
   body{background:linear-gradient(135deg,#ffdcc6 0%,#ffc6dc 27%,#e9c2fb 55%,#a9e7dd 100%) fixed !important;color:#3b2f39}
@@ -79,6 +82,12 @@ CONFIGS = {
   tbody tr:hover{background:rgba(255,255,255,.5) !important}
   tr.mine,tr.me-row{background:rgba(255,143,176,.2) !important}
   .toast{background:var(--turf) !important;color:#fff !important;box-shadow:0 8px 24px rgba(255,93,143,.5) !important}
+  /* La Reina header — Havana-script brand + flirty tagline */
+  .brand{font-family:"Lobster",cursive !important;font-weight:400 !important;font-size:31px !important;
+    letter-spacing:.5px !important;text-transform:none !important;color:#ff4d86 !important;line-height:1.02;
+    display:flex;flex-direction:column;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+  .brand .tagline{font-family:"Poppins",sans-serif !important;font-style:italic;font-weight:500;
+    font-size:12px;letter-spacing:.2px;color:#7c6b76;text-transform:none}
 """,
     },
 }
@@ -154,7 +163,10 @@ def main() -> None:
                     cfg["fmt"], "fmt blurb")
     html = sub_once(html, r'<title>[^<]*</title>', f'<title>{cfg["title"]}</title>', "title")
 
-    # 9) optional per-league theme (font link into <head>, CSS override before </style>)
+    # 9) optional custom brand/header + theme (font link into <head>, CSS before </style>)
+    if cfg.get("brand_html"):
+        html = sub_once(html, r'<div class="brand">.*?</div>',
+                        '<div class="brand">' + cfg["brand_html"] + '</div>', "brand")
     if cfg.get("theme_head"):
         html = html.replace('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo',
                              cfg["theme_head"] + '\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo', 1)

@@ -3,7 +3,7 @@
 <title>Lauren's War Room</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lobster&family=Poppins:wght@500;600;700;800&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
   /* Draft War Room — soft neumorphic light theme on a warm cream ground.
@@ -368,11 +368,17 @@
   tbody tr:hover{background:rgba(255,255,255,.5) !important}
   tr.mine,tr.me-row{background:rgba(255,143,176,.2) !important}
   .toast{background:var(--turf) !important;color:#fff !important;box-shadow:0 8px 24px rgba(255,93,143,.5) !important}
+  /* La Reina header — Havana-script brand + flirty tagline */
+  .brand{font-family:"Lobster",cursive !important;font-weight:400 !important;font-size:31px !important;
+    letter-spacing:.5px !important;text-transform:none !important;color:#ff4d86 !important;line-height:1.02;
+    display:flex;flex-direction:column;text-shadow:0 1px 0 rgba(255,255,255,.6)}
+  .brand .tagline{font-family:"Poppins",sans-serif !important;font-style:italic;font-weight:500;
+    font-size:12px;letter-spacing:.2px;color:#7c6b76;text-transform:none}
 
 </style>
 
 <header>
-  <div class="brand">Draft <span class="b">War Room</span></div>
+  <div class="brand">La Reina del Draft 👑<span class="tagline">“I didn’t ask for a crown. I drafted one.” 🌶️</span></div>
   <div class="fmt" id="fmt">—</div>
   <div class="slotwrap" title="How catches are scored. PPR = 1 point per catch, Half-PPR = 0.5, Standard = 0. It changes how valuable pass-catchers (WR/RB/TE) are — switch it to match your league and every Value recalculates.">
     <label for="scoring">Scoring</label>
