@@ -41,6 +41,45 @@ CONFIGS = {
         "fmt": "`${TEAMS}-team · ${SCORING_LABEL[SCORING]} · "
                "1QB/2RB/2WR/1TE/1FLEX · K + D/ST · top-4 playoffs`",
         "slotdefs": '[["QB",1],["RB",2],["WR",2],["TE",1],["K",1],["DEF",1]]',
+        # Miami/Havana pastel-tropical glassmorphism (overrides the cream
+        # neumorphic look — appended last so it wins the cascade).
+        "theme_head": '<link rel="stylesheet" href="https://fonts.googleapis.com/'
+                      'css2?family=Poppins:wght@500;600;700;800&display=swap">',
+        "theme_css": """
+  /* ===== Lauren's theme: Miami/Havana tropical glassmorphism ===== */
+  body{background:linear-gradient(135deg,#ffdcc6 0%,#ffc6dc 27%,#e9c2fb 55%,#a9e7dd 100%) fixed !important;color:#3b2f39}
+  :root{--ink:#3b2f39;--dim:#7c6b76;--faint:#a596a0;--line:rgba(120,90,110,.15);
+    --turf:#ff5d8f;--turf-dim:#ffc2d6;--solid:#3f7be0;--value:#1fae72;--reach:#e08a00;
+    --mine:rgba(255,255,255,.5);--mine-line:#ff8fb0}
+  .brand,.card h2,.clock .big,.rec .nm{font-family:"Poppins","Archivo",sans-serif !important}
+  .brand .b,.banner .lead,details.gloss summary{color:var(--turf)}
+  header{background:rgba(255,255,255,.5) !important;backdrop-filter:blur(16px) saturate(1.5);
+    -webkit-backdrop-filter:blur(16px) saturate(1.5);border-bottom:1px solid rgba(255,255,255,.6) !important;
+    box-shadow:0 4px 24px rgba(180,120,150,.18) !important}
+  .card,.banner,.term{background:rgba(255,255,255,.48) !important;backdrop-filter:blur(14px) saturate(1.4);
+    -webkit-backdrop-filter:blur(14px) saturate(1.4);border:1px solid rgba(255,255,255,.65) !important;
+    box-shadow:0 8px 30px rgba(150,110,140,.16) !important;border-radius:20px !important}
+  .banner{border-left:4px solid var(--turf) !important}
+  .vbtn{background:rgba(255,255,255,.5) !important;box-shadow:none !important;
+    border:1px solid rgba(255,255,255,.6) !important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  .vbtn.active{background:var(--turf) !important;color:#fff !important;box-shadow:0 6px 16px rgba(255,93,143,.38) !important}
+  input,select,.slotwrap{background:rgba(255,255,255,.6) !important;box-shadow:none !important;
+    border:1px solid rgba(150,110,140,.22) !important;color:var(--ink)}
+  .slotwrap input,.slotwrap select{color:var(--turf);border:none !important}
+  button{background:rgba(255,255,255,.6) !important;box-shadow:none !important;
+    border:1px solid rgba(150,110,140,.2) !important;color:var(--ink);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  .btn-me{background:linear-gradient(135deg,#ff7aa5,#ff5d8f) !important;color:#fff !important;
+    border:none !important;box-shadow:0 6px 16px rgba(255,93,143,.4) !important}
+  .btn-off{background:rgba(255,255,255,.55) !important;color:var(--dim)}
+  .rec{background:rgba(255,255,255,.4) !important;box-shadow:none !important;
+    border:1px solid rgba(255,255,255,.6) !important;border-radius:16px !important}
+  .rec.top{box-shadow:inset 0 0 0 2px var(--turf-dim) !important}
+  .pos{box-shadow:none !important}
+  thead th{background:rgba(255,255,255,.72) !important}
+  tbody tr:hover{background:rgba(255,255,255,.5) !important}
+  tr.mine,tr.me-row{background:rgba(255,143,176,.2) !important}
+  .toast{background:var(--turf) !important;color:#fff !important;box-shadow:0 8px 24px rgba(255,93,143,.5) !important}
+""",
     },
 }
 
@@ -114,6 +153,13 @@ def main() -> None:
     html = sub_once(html, r'`\$\{TEAMS\}-team · \$\{SCORING_LABEL\[SCORING\]\}[^`]*`',
                     cfg["fmt"], "fmt blurb")
     html = sub_once(html, r'<title>[^<]*</title>', f'<title>{cfg["title"]}</title>', "title")
+
+    # 9) optional per-league theme (font link into <head>, CSS override before </style>)
+    if cfg.get("theme_head"):
+        html = html.replace('<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo',
+                             cfg["theme_head"] + '\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo', 1)
+    if cfg.get("theme_css"):
+        html = html.replace("</style>", cfg["theme_css"] + "\n</style>", 1)
 
     out = ROOT / cfg["out"]
     out.write_text(html, encoding="utf-8")
