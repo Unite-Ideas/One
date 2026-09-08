@@ -1,55 +1,39 @@
 #!/usr/bin/env python3
-"""Weekly in-season refresh for the Season Manager.
+"""Weekly in-season refresh for the Season Manager (platform-agnostic).
 
-Pulls everything live from Sleeper and re-embeds a rich ``SEASON`` data blob
-into webapp/draft_room.html so the Season Manager runs on current data:
+Pulls a league's live data through its pluggable adapter (Sleeper today, ESPN
+later) and re-embeds a rich ``SEASON`` blob into that league's web app so the
+Season Manager runs on current data:
 
-  * current NFL week + season (Sleeper state)
-  * every team's live roster (adds/drops included) + owner names
-  * this week's head-to-head matchup pairings
-  * exact weekly projections in THIS league's scoring (stat line x the league's
-    148 scoring_settings, so the TE +0.5/catch premium is baked in)
+  * current NFL week + season
+  * every team's live roster + owner names
+  * this week's head-to-head matchups + the full-season schedule/standings
+  * exact weekly projections in THIS league's scoring (TE premium etc. honored)
   * rest-of-season totals (FantasyPros consensus via ffball.sources)
-  * live injury_status flags and Sleeper trending-add counts (waiver hotness)
+  * injury flags and trending-add counts
+  * this week's NFL games + Vegas lines (ESPN CDN scoreboard — NFL-wide, shared)
 
-The published web page can't call Sleeper itself (sandbox blocks it), so this
-script is the live feed: run it, then republish the artifact. Meant to run
-weekly (Tue) via a scheduled routine.
+The published web page can't call the platform itself, so this is the live
+feed: run it, then republish the artifact.
 
-Run:  python3 tools/refresh_season.py
+Run:  python3 tools/refresh_season.py [league_key]   (default: sleeper-finaldraft)
 """
 from __future__ import annotations
 
 import json
 import sys
-import urllib.request
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
-from ffball import sources  # noqa: E402
+from ffball import sources                       # noqa: E402
+from ffball.adapters import http_json            # noqa: E402
+from ffball.leagues import get_league            # noqa: E402
 
-LID = "1395483423719587840"
-MY_OWNER = "GodModeEnabled"
-HTML = ROOT / "webapp" / "draft_room.html"
 SEASON_TAG = '<script id="season" type="application/json">'
-OFFENSE = ("QB", "RB", "WR", "TE")
 
-
-def _get(url: str):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.load(r)
-
-
-def weekly_points(stats: dict, scoring: dict) -> float:
-    """Exact league score for a projected stat line = stats . scoring_settings."""
-    return round(sum(float(v) * scoring[k] for k, v in stats.items()
-                     if k in scoring and isinstance(v, (int, float))), 1)
-
-
-# ESPN team abbreviations differ from Sleeper's in a couple of spots.
+# ESPN team abbreviations differ from the projection feed's in a couple spots.
 ESPN2SLEEPER = {"WSH": "WAS", "JAC": "JAX", "LA": "LAR"}
 
 
@@ -59,15 +43,11 @@ def _abbr(a: str) -> str:
 
 def build_games(week: int, season: str) -> dict:
     """This week's NFL games (kickoff, venue, Vegas line/total) keyed by team.
-
-    Source: ESPN's CDN scoreboard mirror (the site.api host is proxy-blocked).
-    Each team maps to {opp, home, kick (ET), venue, city, fav, spread, total,
-    implied} so the app can show a player's game, location, and scoring outlook.
-    """
+    NFL-wide data (not platform-specific), from ESPN's CDN scoreboard mirror."""
     url = (f"https://cdn.espn.com/core/nfl/scoreboard?xhr=1&limit=50"
            f"&week={week}&year={season}&seasontype=2")
     try:
-        data = _get(url)
+        data = http_json(url)
     except Exception:
         return {}
     sb = data.get("content", {}).get("sbData", {}) or data.get("content", {}).get("scoreboard", {})
@@ -81,7 +61,6 @@ def build_games(week: int, season: str) -> dict:
             ven = comp.get("venue", {}) or {}
             addr = ven.get("address", {}) or {}
             city = ", ".join(x for x in (addr.get("city"), addr.get("state") or addr.get("country")) if x)
-            # kickoff in US Eastern (EDT through early November)
             kick = ""
             try:
                 dt = datetime.fromisoformat(ev["date"].replace("Z", "+00:00")).astimezone(timezone.utc)
@@ -89,7 +68,7 @@ def build_games(week: int, season: str) -> dict:
             except Exception:
                 pass
             odds = (comp.get("odds") or [{}])[0]
-            details = odds.get("details") or ""            # e.g. "LAR -3.5" or "EVEN"
+            details = odds.get("details") or ""
             total = odds.get("overUnder")
             fav, spread = "", None
             parts = details.split()
@@ -111,19 +90,13 @@ def build_games(week: int, season: str) -> dict:
     return games
 
 
-def build_league(week_now: int, playoff_start: int = 15) -> tuple:
-    """Full-season schedule + standings from Sleeper.
-
-    Returns (schedule, records). schedule[week] is a list of matchups
-    {a, b, a_pts, b_pts, final}; records[roster_id] is {w,l,t,pf}. A week is
-    'final' once it's behind the current week, so results fill in as the season
-    plays out.
-    """
+def build_league(src, week_now: int, playoff_start: int = 15) -> tuple:
+    """Full-season schedule + standings via the adapter's matchups."""
     schedule: dict = {}
     records: dict = {}
     for wk in range(1, playoff_start):
         try:
-            mus = _get(f"https://api.sleeper.app/v1/league/{LID}/matchups/{wk}")
+            mus = src.matchups(wk)
         except Exception:
             continue
         by_mid: dict = {}
@@ -131,11 +104,11 @@ def build_league(week_now: int, playoff_start: int = 15) -> tuple:
             by_mid.setdefault(m.get("matchup_id"), []).append(m)
         final = wk < week_now
         entries = []
-        for mid, pair in by_mid.items():
+        for _, pair in by_mid.items():
             if len(pair) != 2:
                 continue
             a, b = pair
-            ap, bp = round(a.get("points") or 0, 2), round(b.get("points") or 0, 2)
+            ap, bp = a["points"], b["points"]
             entries.append({"a": a["roster_id"], "b": b["roster_id"],
                             "a_pts": ap, "b_pts": bp, "final": final})
             for rid in (a["roster_id"], b["roster_id"]):
@@ -155,74 +128,49 @@ def build_league(week_now: int, playoff_start: int = 15) -> tuple:
     return schedule, records
 
 
-def build_season() -> dict:
-    state = _get("https://api.sleeper.app/v1/state/nfl")
-    week, season = int(state["week"]) or 1, state["season"]
-
-    league = _get(f"https://api.sleeper.app/v1/league/{LID}")
+def build_season(lg) -> dict:
+    src = lg.source()
+    st = src.state()
+    week, season = st["week"], st["season"]
+    league = src.league()
     scoring = league.get("scoring_settings", {})
-    users = _get(f"https://api.sleeper.app/v1/league/{LID}/users")
-    rosters = _get(f"https://api.sleeper.app/v1/league/{LID}/rosters")
-    matchups = _get(f"https://api.sleeper.app/v1/league/{LID}/matchups/{week}")
+    settings = league.get("settings", {}) or {}
 
-    uname = {u["user_id"]: (u.get("metadata", {}).get("team_name") or u.get("display_name"))
-             for u in users}
-    owner_of = {r["roster_id"]: uname.get(r.get("owner_id"), f"Team {r['roster_id']}")
-                for r in rosters}
-    my_rid = next((r["roster_id"] for r in rosters
-                   if uname.get(r.get("owner_id")) == MY_OWNER), None)
+    roster_list = src.rosters()
+    owner_of = {r["roster_id"]: r["owner"] for r in roster_list}
+    my_rid = next((r["roster_id"] for r in roster_list if r["owner"] == lg.my_owner), None)
+    teams = {str(r["roster_id"]): {"owner": r["owner"], "players": r["players"]} for r in roster_list}
+    rostered = {pid for r in roster_list for pid in r["players"]}
 
     # this-week opponent for each roster
     opp = {}
     by_mid: dict = {}
-    for m in matchups:
-        by_mid.setdefault(m.get("matchup_id"), []).append(m.get("roster_id"))
-    for mid, rids in by_mid.items():
+    for m in src.matchups(week):
+        by_mid.setdefault(m.get("matchup_id"), []).append(m["roster_id"])
+    for _, rids in by_mid.items():
         if len(rids) == 2:
             opp[rids[0]], opp[rids[1]] = rids[1], rids[0]
 
-    teams = {str(r["roster_id"]): {"owner": owner_of[r["roster_id"]],
-                                   "players": [str(p) for p in (r.get("players") or [])]}
-             for r in rosters}
-    rostered = {pid for t in teams.values() for pid in t["players"]}
-
-    # weekly projections in league scoring
-    q = "&".join(f"position[]={p}" for p in OFFENSE)
-    proj = _get(f"https://api.sleeper.com/projections/nfl/{season}/{week}"
-                f"?season_type=regular&{q}&order_by=pts_ppr")
-    wk = {}
-    for pr in proj:
-        pid = str(pr.get("player_id"))
-        st = pr.get("stats") or {}
-        wk[pid] = {"wk": weekly_points(st, scoring), "opp": pr.get("opponent") or "",
-                   "team": pr.get("team") or ""}
-
-    # rest-of-season totals + names/pos from the consensus board
+    wk = src.weekly_projections(season, week, scoring)
     ros = {}
     for r in sources.fetch_board_rows(scoring="ppr", superflex=True):
         sid = str(r.get("sleeper_id") or r.get("player_id"))
         ros[sid] = {"name": r["name"], "pos": r["position"], "team": r["team"] or "",
                     "ros": r["fpts"], "bye": r["bye_week"]}
+    pmeta = src.player_meta()
+    trend = src.trending()
 
-    # injuries + name fallback from the player DB; trending adds
-    pdb = _get("https://api.sleeper.app/v1/players/nfl")
-    trend = {str(t["player_id"]): t["count"]
-             for t in _get("https://api.sleeper.app/v1/players/nfl/trending/add?limit=75")}
-
-    # assemble the player map: everyone rostered, plus top free agents by weekly proj
     def meta(pid: str) -> dict:
         r = ros.get(pid, {})
-        sp = pdb.get(pid, {})
-        name = r.get("name") or sp.get("full_name") or \
-            f"{sp.get('first_name','')} {sp.get('last_name','')}".strip() or pid
-        pos = r.get("pos") or sp.get("position") or "NA"
+        pm = pmeta.get(pid, {})
         w = wk.get(pid, {})
-        st = (sp.get("injury_status") or "").strip()
-        d = {"name": name, "pos": pos, "team": w.get("team") or r.get("team") or "",
-             "opp": w.get("opp", ""), "wk": w.get("wk", 0.0), "ros": r.get("ros", 0.0),
-             "bye": r.get("bye")}
-        if st and st.lower() not in ("", "healthy"):
-            d["inj"] = ("Q" if st.lower() == "questionable" else st.upper())
+        d = {"name": r.get("name") or pm.get("name") or pid,
+             "pos": r.get("pos") or pm.get("pos") or "NA",
+             "team": w.get("team") or r.get("team") or "",
+             "opp": w.get("opp", ""), "wk": w.get("wk", 0.0),
+             "ros": r.get("ros", 0.0), "bye": r.get("bye")}
+        if pm.get("injury"):
+            d["inj"] = pm["injury"]
         if pid in trend:
             d["trend"] = trend[pid]
         return d
@@ -230,38 +178,40 @@ def build_season() -> dict:
     fa_ids = [pid for pid in wk if pid not in rostered and pid in ros]
     fa_ids.sort(key=lambda p: -wk[p]["wk"])
     fa_ids = fa_ids[:80]
-
     players = {pid: meta(pid) for pid in (rostered | set(fa_ids))}
 
-    playoff_start = int((league.get("settings", {}) or {}).get("playoff_week_start", 15))
-    schedule, records = build_league(week, playoff_start)
+    playoff_start = int(settings.get("playoff_week_start", 15))
+    schedule, records = build_league(src, week, playoff_start)
 
     return {
         "week": week, "season": season, "updated": date.today().isoformat(),
-        "myRoster": my_rid, "myOwner": MY_OWNER,
+        "myRoster": my_rid, "myOwner": lg.my_owner,
         "teams": teams, "opp": {str(k): v for k, v in opp.items()},
         "players": players, "freeAgents": fa_ids,
         "games": build_games(week, season),
         "schedule": schedule, "records": {str(k): v for k, v in records.items()},
-        "playoffStart": playoff_start, "playoffTeams": int((league.get("settings", {}) or {}).get("playoff_teams", 6)),
-        "mine": teams[str(my_rid)]["players"] if my_rid else [],
+        "playoffStart": playoff_start, "playoffTeams": int(settings.get("playoff_teams", 6)),
+        "mine": teams[str(my_rid)]["players"] if my_rid is not None else [],
         "drafted": sorted(rostered),
     }
 
 
 def main() -> None:
-    season = build_season()
+    key = sys.argv[1] if len(sys.argv) > 1 else "sleeper-finaldraft"
+    lg = get_league(key)
+    html_path = ROOT / lg.cfg.get("artifact_file", "webapp/draft_room.html")
+    season = build_season(lg)
     payload = json.dumps(season, separators=(",", ":"))
-    html = HTML.read_text(encoding="utf-8")
+    html = html_path.read_text(encoding="utf-8")
     if SEASON_TAG not in html:
-        raise SystemExit("season <script> block not found in HTML — add the placeholder first.")
+        raise SystemExit(f"season <script> block not found in {html_path}")
     start = html.index(SEASON_TAG) + len(SEASON_TAG)
     end = html.index("</script>", start)
-    HTML.write_text(html[:start] + payload + html[end:], encoding="utf-8")
-    print(f"Refreshed Season Manager: Week {season['week']} {season['season']} · "
+    html_path.write_text(html[:start] + payload + html[end:], encoding="utf-8")
+    opp_owner = season["teams"].get(str(season["opp"].get(str(season["myRoster"]))), {}).get("owner", "?")
+    print(f"Refreshed [{lg.key}]: Week {season['week']} {season['season']} · "
           f"{len(season['teams'])} teams · {len(season['players'])} players · "
-          f"{len(season['freeAgents'])} FAs · your Wk{season['week']} opp = "
-          f"{season['teams'].get(str(season['opp'].get(str(season['myRoster']))), {}).get('owner','?')}")
+          f"{len(season['freeAgents'])} FAs · your Wk{season['week']} opp = {opp_owner}")
 
 
 if __name__ == "__main__":
