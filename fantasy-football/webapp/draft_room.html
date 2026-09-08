@@ -734,7 +734,9 @@ function recommend(topN){
     const {mult,bonus,need}=pickScoreParts(pos, have);
     const dd=drop[pos]||0;
     const reach=(p.adp!=null)?(p.adp-cur):0;
-    const reachPen=REACH_W*Math.max(0, reach-REACH_GRACE);
+    // K/DEF carry huge ADPs (drafted dead last), so a normal reach penalty would
+    // nuke them even in the final rounds — exempt them (already late-gated above).
+    const reachPen=(pos==="K"||pos==="DEF")?0:REACH_W*Math.max(0, reach-REACH_GRACE);
     const score=p.vbd*mult + SCARCITY_W*dd + bonus - reachPen;
     out.push({p,score,need,drop:dd});
   }

@@ -225,7 +225,15 @@ def recommend(
         if pos == "QB" and superflex:
             starters += 1                 # superflex effectively needs a 2nd QB
         # Superflex QBs are premium and drain fast — prioritize them aggressively.
-        mustfill = 90.0 if (pos == "QB" and superflex) else _MUSTFILL_BONUS.get(pos, 40.0)
+        # K/DEF only reach here in the final rounds (gated above); when one of
+        # those required starting slots is still empty it MUST be filled, so the
+        # bonus has to dominate leftover skill-position depth.
+        if pos in ("K", "DEF"):
+            mustfill = 200.0
+        elif pos == "QB" and superflex:
+            mustfill = 90.0
+        else:
+            mustfill = _MUSTFILL_BONUS.get(pos, 40.0)
         capacity = max(starters, _startable_capacity(pos, state.league))
         if have < starters:
             # An unfilled starting slot: urgent (scaled by how scarce the pos is).
@@ -239,7 +247,9 @@ def recommend(
 
         pos_drop = dropoff.get(pos, 0.0)
         reach = (p.adp - state.current_overall) if p.adp is not None else 0.0
-        reach_pen = _REACH_WEIGHT * max(0.0, reach - _REACH_GRACE)
+        # K/DEF carry huge ADPs (always drafted last), so a normal reach penalty
+        # would nuke them even in the final rounds — exempt them (already gated).
+        reach_pen = 0.0 if pos in ("K", "DEF") else _REACH_WEIGHT * max(0.0, reach - _REACH_GRACE)
         score = p.vbd * mult + scarcity_weight * pos_drop + bonus - reach_pen
         reason = _explain(p, need, pos_drop, state)
         suggestions.append(

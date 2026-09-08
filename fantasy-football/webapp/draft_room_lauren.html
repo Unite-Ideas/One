@@ -570,7 +570,7 @@ const CAPS = {QB: 2, RB: 8, WR: 8, TE: 3, K: 2, DEF: 2};
 const NEED_BONUS = {"must-fill":60,"depth":20,"luxury":0};   // (legacy; superseded below)
 // Roster-construction model: position-aware urgency + startable-capacity discount.
 // Superflex makes QB a premium must-fill (you start up to 2 QBs).
-const MUSTFILL_BONUS={QB: 40, RB: 60, WR: 60, TE: 28, K: 12, DEF: 12};
+const MUSTFILL_BONUS={QB: 40, RB: 60, WR: 60, TE: 28, K: 200, DEF: 200};
 const SUPER_FLEX_WEIGHTS = {};
 const FLEX_DEPTH_BONUS=15, FLEX_FILL_MULT=0.85, OVER_CAP_MULT=0.30, REACH_GRACE=8, REACH_W=1;
 function startableCapacity(pos){
@@ -734,7 +734,9 @@ function recommend(topN){
     const {mult,bonus,need}=pickScoreParts(pos, have);
     const dd=drop[pos]||0;
     const reach=(p.adp!=null)?(p.adp-cur):0;
-    const reachPen=REACH_W*Math.max(0, reach-REACH_GRACE);
+    // K/DEF carry huge ADPs (drafted dead last), so a normal reach penalty would
+    // nuke them even in the final rounds — exempt them (already late-gated above).
+    const reachPen=(pos==="K"||pos==="DEF")?0:REACH_W*Math.max(0, reach-REACH_GRACE);
     const score=p.vbd*mult + SCARCITY_W*dd + bonus - reachPen;
     out.push({p,score,need,drop:dd});
   }

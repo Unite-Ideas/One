@@ -35,7 +35,7 @@ CONFIGS = {
         "starters": {"QB": 1, "RB": 2, "WR": 2, "TE": 1, "K": 1, "DEF": 1},
         "flex": 1, "super_flex": 0, "bench": 7,
         "caps": {"QB": 2, "RB": 8, "WR": 8, "TE": 3, "K": 2, "DEF": 2},
-        "mustfill": {"QB": 40, "RB": 60, "WR": 60, "TE": 28, "K": 12, "DEF": 12},
+        "mustfill": {"QB": 40, "RB": 60, "WR": 60, "TE": 28, "K": 200, "DEF": 200},
         "sf_weights": {},
         "key": "ffball_draft_lauren",
         "fmt": "`${TEAMS}-team · ${SCORING_LABEL[SCORING]} · "

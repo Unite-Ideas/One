@@ -92,10 +92,22 @@ def simulate(board, lg, rng):
             pick = recs[0].player if recs else next((p for p in board if p.player_id not in drafted), None)
         else:
             oc = caps[slot]; pick = None
+            rnd = (overall - 1) // teams + 1
+            # Real managers (and ESPN autodraft) fill a K and D/ST in the last
+            # couple rounds — model that so the field isn't handicapped.
+            need_pos = None
+            if rnd >= rounds - 1:
+                if oc.get("K", 0) < 1:
+                    need_pos = "K"
+                elif oc.get("DEF", 0) < 1:
+                    need_pos = "DEF"
             for p in pri:
                 if p.player_id in drafted:
                     continue
-                if oc.get(p.position, 0) >= OPP_CAP.get(p.position, 7):
+                if need_pos:
+                    if p.position != need_pos:
+                        continue
+                elif oc.get(p.position, 0) >= OPP_CAP.get(p.position, 7):
                     continue
                 pick = p; break
             if pick:
