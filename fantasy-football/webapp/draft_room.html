@@ -502,15 +502,14 @@
 
 <div id="leagueView" hidden>
   <div class="banner">
-    <span class="lead">🏆 Conquest Board</span> Your season isn’t a bracket — you play <b>everyone</b> in a round-robin (Weeks 1–14), then the
-    <b>top 6 records make the playoff bracket</b> (Weeks 15–17). Here’s who’s winning, who you’ve <b>smashed</b>, and who’s left.
+    <span class="lead">🏆 Conquest Board</span> <span id="cbText">Your season is a round-robin, then the top records make the playoffs. Here’s who’s winning, who you’ve <b>smashed</b>, and who’s left.</span>
     <span id="leagueFresh" style="color:var(--faint);font-size:11.5px;margin-left:8px"></span>
   </div>
   <div class="wrap">
     <div>
       <div class="card">
         <h2>📊 Standings</h2>
-        <p class="hint">Ranked by record, then points scored. The dashed line is the <b>playoff cutoff</b> — top 6 get in. Before games start, this shows <b>projected</b> order by roster strength.</p>
+        <p class="hint">Ranked by record, then points scored. The dashed line is the <b>playoff cutoff</b> — top <span id="cutHint">6</span> get in. Before games start, this shows <b>projected</b> order by roster strength.</p>
         <div class="tablewrap"><table id="standings"></table></div>
       </div>
       <div class="card">
@@ -1412,6 +1411,9 @@ function renderLeague(){
   if(!HAS_SEASON){ document.getElementById('leagueFresh').textContent='Load live data first.'; return; }
   document.getElementById('leagueFresh').textContent=`● Week ${SEASON.week} · updated ${SEASON.updated}`;
   const myr=SEASON.myRoster, cut=SEASON.playoffTeams||6, weeks=(SEASON.playoffStart||15)-1;
+  const cbt=document.getElementById('cbText');
+  if(cbt) cbt.innerHTML=`Your season is a round-robin — you play <b>everyone</b> (Weeks 1–${weeks}), then the <b>top ${cut} records make the playoffs</b> (Week ${SEASON.playoffStart||15}+). Here’s who’s winning, who you’ve <b>smashed</b>, and who’s left.`;
+  const ch=document.getElementById('cutHint'); if(ch) ch.textContent=cut;
   const ranked=rankedTeams(), played=(SEASON.week||1)>1;
 
   // standings
