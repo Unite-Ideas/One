@@ -1,0 +1,19 @@
+{
+    "_comment": "Sean's real league — The Final Draft Lifegroup (Sleeper). One config per league keeps platforms isolated.",
+    "key": "sleeper-finaldraft",
+    "platform": "sleeper",
+    "league_name": "The Final Draft Lifegroup",
+    "league_id": "1395483423719587840",
+    "draft_id": "1395483425380528128",
+    "my_owner": "GodModeEnabled",
+    "artifact_url": "https://claude.ai/code/artifact/c279e04a-9c49-4186-9fa6-fed35497de92",
+    "artifact_file": "webapp/draft_room.html",
+    "season": "2026",
+    "my_draft_slot": 9,
+    "members": {
+        "_comment": "Sleeper display_name -> real name. Confirmed spellings only; add more as we learn them.",
+        "GodModeEnabled": "Sean",
+        "ransom7432": "Nathen"
+    },
+    "notes": "SUPERFLEX, TE +0.5/catch, no K/DEF. 10 teams. Full scoring pulled live from the platform."
+}
