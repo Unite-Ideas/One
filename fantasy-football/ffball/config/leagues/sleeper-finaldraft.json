@@ -10,5 +10,10 @@
     "artifact_file": "webapp/draft_room.html",
     "season": "2026",
     "my_draft_slot": 9,
+    "members": {
+        "_comment": "Sleeper display_name -> real name. Confirmed spellings only; add more as we learn them.",
+        "GodModeEnabled": "Sean",
+        "ransom7432": "Nathen"
+    },
     "notes": "SUPERFLEX, TE +0.5/catch, no K/DEF. 10 teams. Full scoring pulled live from the platform."
 }
