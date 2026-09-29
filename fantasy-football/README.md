@@ -95,13 +95,39 @@ ffball/
   cli.py          command-line entry point
 docs/             METHODOLOGY.md, DATA_SOURCES.md
 tests/            unit tests (python3 -m unittest discover -s tests)
-tools/            make_sample.py (regenerates the synthetic sample)
+tools/            make_sample.py, refresh_season.py, matchup_scout.py,
+                  build_espn_season.py (in-season data + scouting scripts)
+journal/          shared append-only log the scheduled routines write to
+webapp/           published web dashboards (draft_room*.html)
 ```
 
 ## Tests
 ```bash
 python3 -m unittest discover -s tests -v
 ```
+
+## In-season automation & shared journal
+Scheduled routines (Claude Code Remote triggers) run the season on autopilot and
+ping Sean on his phone. So their output isn't trapped in notifications, **every
+fantasy routine appends its full recommendation to a shared log under
+[`journal/`](journal/) and pushes it to the working branch**
+(`claude/fantasy-football-ai-n1d1kz`). The main chat session then just
+`git pull`s and reads the journal to discuss anything a routine sent — no
+copy-paste from the phone.
+
+| Routine | Cadence | Journal file |
+|---|---|---|
+| Waiver league-winner watch (two-tier: 🚨 spend #2 / 🟢 free grabs) | daily | `journal/waiver-watch.md` |
+| Weekly opponent scouting / battle plan | Tue | `journal/weekly-scouting.md` |
+| Lauren's ESPN hype-email draft | Tue | `journal/lauren-weekly.md` |
+| Post-waiver results + rival scouting | Wed | `journal/waiver-results.md` |
+
+Rules the routines follow (see [`journal/README.md`](journal/README.md)): append
+only (newest at the bottom), one commit touching only that routine's own journal
+file, `pull --rebase` + retry once on a push race, and **never write a secret**
+(ESPN cookies `ESPN_S2`/`ESPN_SWID` live only as environment variables, never in
+the repo). If a run can't push, it still delivers the alert and flags the failed
+journal write.
 
 ## Roadmap (season management — phase 2)
 - Weekly **lineup optimizer** (projection-max legal lineup, matchup-adjusted).

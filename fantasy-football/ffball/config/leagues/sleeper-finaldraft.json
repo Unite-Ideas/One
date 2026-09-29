@@ -16,5 +16,16 @@
         "ransom7432": "Nathen",
         "BigBfun": "Brian"
     },
-    "notes": "SUPERFLEX, TE +0.5/catch, no K/DEF. 10 teams. Full scoring pulled live from the platform."
+    "notes": "SUPERFLEX, TE +0.5/catch, no K/DEF. 10 teams. Full scoring pulled live from the platform.",
+    "automation": {
+        "_comment": "Scheduled routines log their recommendations to fantasy-football/journal/ (append-only, pushed to this branch) so the main chat can pull and reference them. See fantasy-football/README.md > 'In-season automation & shared journal'. Never commit ESPN_S2/ESPN_SWID or any secret.",
+        "branch": "claude/fantasy-football-ai-n1d1kz",
+        "journal_dir": "fantasy-football/journal/",
+        "routines": {
+            "waiver-watch (daily)": "journal/waiver-watch.md",
+            "weekly-scouting (Tue)": "journal/weekly-scouting.md",
+            "lauren-weekly (Tue)": "journal/lauren-weekly.md",
+            "waiver-results (Wed)": "journal/waiver-results.md"
+        }
+    }
 }
