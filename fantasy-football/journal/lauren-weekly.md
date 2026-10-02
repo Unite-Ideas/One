@@ -6,6 +6,19 @@ Each entry = the full email draft + any injury emergency / IR / waiver notes.
 
 Never store ESPN cookies here — recommendations and public matchup info only.
 
+### LAUREN EMAIL STYLE (Sean's standing preferences — follow every time)
+- **Moves table, always.** Include a clear, stylized table of the EXACT moves: who's
+  OUT / dropped and who's IN / added, with the lineup slot. Keep it dead simple so
+  she can act from the table alone. For emails sent directly via Gmail from a live
+  session, use `htmlBody` with a styled HTML table themed to match the email (crown/
+  hot-pink/gold vibe). For the routine's forward-to-Sean text version, use a clean
+  markdown table.
+- **Overtly sexy and naughty.** She loves it and it keeps her reading and remembering
+  the moves. Lean into flirty innuendo and naughty humor (not just "sassy"). Keep it
+  fun and non-graphic, never pornographic. Cussing is fine.
+- Still: La Reina del Draft persona, NO em dashes, and a close that makes it obvious
+  it's Sean's robot coach, not Sean.
+
 ---
 
 ## 2026-09-29 — journal wired up (seed entry)
