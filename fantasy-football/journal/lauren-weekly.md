@@ -30,3 +30,20 @@ Key findings (ESPN live, Week 4, league 632127067, team 19):
 - TE coin-flip (Kincaid vs Fannin, both 6.5) mentioned as optional, not sent as urgent.
 
 Status: delivered. Lauren had NOT made the moves as of send time (her call — she's casual about it).
+
+---
+
+## 2026-10-02 — 👑 Reina, you snoozed and someone stole your man (manual re-send, Fri)
+
+Sent from Sean's Gmail to Ward.Lauren.89@gmail.com (Gmail message id 1a0fa173cefd0a72). Sean asked for sassy+sexual tone with crystal-clear ESPN app step-by-step.
+
+Why a re-send: the 9/29 email told her to grab Braelon Allen; she waited and a rival (manager "Sugondese") claimed Allen. She also STILL had dead Achane in her starting RB slot (0.0).
+
+New fix sent (ESPN live, Week 4, league 632127067, team 19):
+- DROP De'Von Achane (torn ACL, done) -> ADD Ollie Gordon II (RB-MIA, free agent in her league, Dolphins bell-cow, best long-term value; alts were Kendre Miller / Isaiah Davis ~7 proj) -> START Gordon at RB. Swings lineup ~78 -> ~85.3, past Wesson Oilers' 84.3 = projected WIN.
+- App steps spelled out: Players/Add Players tab -> search Gordon -> Add -> drop Achane; then My Team -> move Gordon into RB slot.
+- SUNDAY WATCH: DeVonta Smith (FLEX) is Questionable; if ruled OUT, start KC Concepcion at FLEX.
+
+Rival scouting (Wesson Oilers, 10th, 1-2, 247.6 PF, proj 84.3): only real weapons are Joe Burrow (QB) + Amon-Ra St. Brown (WR). Weak RBs (Hampton 9.3, Judkins 10.4), thin WR depth, minor FLEX misplay (Doubs over Diggs/Metcalf). Beatable basement brawl; Lauren wins if she fixes the RB zero and any WR pops.
+
+Status: delivered. Allen already lost to rival; awaiting whether Lauren makes the Gordon move.
