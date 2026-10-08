@@ -22,6 +22,7 @@ from phone notifications.
 | `weekly-scouting.md` | Weekly opponent scouting / battle plan            | Tue |
 | `lauren-weekly.md`   | Lauren's weekly hype-email draft                  | Tue |
 | `waiver-results.md`  | Post-waiver-processing results + rival scouting   | Wed |
+| `sean-moves.md`      | Sean's roster moves, trade plan, reasoning (written by the main chat, not a routine) | as needed |
 
 ## For the routines (write protocol)
 
