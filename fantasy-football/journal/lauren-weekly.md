@@ -113,3 +113,19 @@ Key facts (ESPN live, Week 5, league 632127067, team 19):
 - Tone: praise-forward (she finally showed up) + sultry/empowering per the STYLE note; framed as a set-and-swing underdog week vs the 4-0 leader.
 
 Status: delivered.
+
+---
+
+## 2026-10-15 - 👑 Reina, three of your men are on bye and you're home alone. Let me fix that. 😈 (manual send, Week 6)
+
+Sent from Sean's Gmail to Ward.Lauren.89@gmail.com (Gmail message id 1a13d12a532b64b7) after Sean approved the draft (he asked for a hotter, more sultry version; stayed softcore and implied per the STYLE note). HTML moves table included.
+
+Key findings (ESPN live, Week 6, league 632127067, team 19):
+- STANDINGS: Lauren 2-3, 9th of 12, PF 451.7, top 4 make the playoffs. She beat league leader Aces last week.
+- OPPONENT: "This is an outrage" (team 24), 3-2, 4th place, PF 483.0. Lineup set correctly, projected about 91.5 (Maye QB 20.2, Evans 11.9, Swift 11.2, Collins 9.8, McBride 9.4). No exploitable mistakes; a win drops them out of the top 4.
+- EMERGENCY: Chase Brown, Ollie Gordon II and Malik Washington (RB1, RB2, FLEX) all on BYE. Set lineup projected about 60.8, win chance about 4%.
+- FIX SENT: add Holani (RB SEA, Thu night) + Kaelon Black (RB SF, Mon night), Smith to FLEX, K Little -> Matt Gay (LV), DEF 49ers -> Buccaneers. Drops: Jayden Reed, Dalton Kincaid. Projected about 83, win chance about 30% (about 27% if Smith is out). Rough playoff odds about 7.5% -> 10.6%.
+- Fallbacks sent: Najee Harris (NYG) instead of Holani if she misses Thursday's lock; DeMario Douglas (NE WR) at FLEX if Smith is ruled out.
+- Lock reminder: Seahawks at Broncos, Thursday 8:15 PM ET.
+
+Status: delivered. Awaiting whether Lauren makes the moves.
