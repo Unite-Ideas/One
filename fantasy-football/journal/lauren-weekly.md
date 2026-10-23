@@ -22,7 +22,8 @@ Never store ESPN cookies here — recommendations and public matchup info only.
   and happen to also know her exact lineup moves. If a line isn't making her feel like a
   bombshell boss, cut it.
 
-- **Heat level: softcore and sultry, never pornographic.** Flirty teasing, slow-burn
+- **Heat level (UPDATED 2026-10-23 at Lauren's own request via Sean): steamy, shameless and very suggestive, still non-graphic.** She asked for hotter, even "slutty" and bordering on pornographic. The Week 7 emails went to that level: bold innuendo, bedroom metaphors, teasing commands, heavy Spanish. Stay implied and suggestive; no explicit acts or anatomy. (Earlier baseline below: softcore and sultry, never pornographic.)
+- **Baseline heat level: softcore and sultry, never pornographic.** Flirty teasing, slow-burn
   innuendo, double entendres, "come here, let me show you" energy. IMPLY, do not
   describe. Think telenovela seduction and playful bedroom-adjacent metaphor, NOT anatomy
   or explicit acts. Non-graphic always. Cussing is fine.
@@ -127,5 +128,23 @@ Key findings (ESPN live, Week 6, league 632127067, team 19):
 - FIX SENT: add Holani (RB SEA, Thu night) + Kaelon Black (RB SF, Mon night), Smith to FLEX, K Little -> Matt Gay (LV), DEF 49ers -> Buccaneers. Drops: Jayden Reed, Dalton Kincaid. Projected about 83, win chance about 30% (about 27% if Smith is out). Rough playoff odds about 7.5% -> 10.6%.
 - Fallbacks sent: Najee Harris (NYG) instead of Holani if she misses Thursday's lock; DeMario Douglas (NE WR) at FLEX if Smith is ruled out.
 - Lock reminder: Seahawks at Broncos, Thursday 8:15 PM ET.
+
+Status: delivered. Awaiting whether Lauren makes the moves.
+
+
+---
+
+## 2026-10-23 - 👑 Mi reina, your QB is still on bye and you're still in bed alone. Time to get dressed. 😈🔥 (manual send, Week 7)
+
+Sent from Sean's Gmail to Ward.Lauren.89@gmail.com (Gmail message id 1a169044bb88d35b) after Sean approved the draft. Heat level raised per Lauren's request (see STYLE note). HTML moves table included. A Wednesday draft was never sent (the Gmail send was denied), so this is the Week 7 send.
+
+Week 6 result: Lauren lost 79.8 to 86.6 vs "This is an outrage" after making every move from the 10/15 email (projected 83 vs 92). Fannin 0.9, Watson 6.4, Black 3.7 were the misses; Stroud scored 23.0 on her bench.
+
+Key findings (ESPN live, Week 7, league 632127067, team 19):
+- STANDINGS: Lauren 2-4, 9th of 12, PF 531.5, top 4 make playoffs; six teams at 4-2.
+- OPPONENT: Mango's Dad (team 4), 2-4. Noticed their QB bye and added Aaron Rodgers (19.5). Santos K already banked 14.0 on Thursday. Projects about 98 to 101. Mistakes: Pitts (6.0) at TE over Likely (8.7); Irving Q at FLEX.
+- EMERGENCY: Lauren's QB Jayden Daniels on BYE in the lineup, plus Black/Holani at RB with Brown/Gordon (back from bye) on the bench. Lineup as left projects about 52, win chance under 1%.
+- FIX SENT: Stroud QB, Brown + Gordon RB, Panthers D/ST for Bucs D/ST (free agent). Projected about 85 to 90, win chance about 25% (23% from the free fix alone). Earlier Boswell/Titans claims were not placed and both players were taken by others.
+- WATCH: Watson (4:25 PM ET Sun), Pickens and Smith (Mon 8:15 PM ET) all questionable; Malik Washington is the bench backup (win chance stays 21 to 25% in each case). Lineup lock before 1 PM ET Sunday.
 
 Status: delivered. Awaiting whether Lauren makes the moves.
