@@ -148,3 +148,22 @@ Key findings (ESPN live, Week 7, league 632127067, team 19):
 - WATCH: Watson (4:25 PM ET Sun), Pickens and Smith (Mon 8:15 PM ET) all questionable; Malik Washington is the bench backup (win chance stays 21 to 25% in each case). Lineup lock before 1 PM ET Sunday.
 
 Status: delivered. Awaiting whether Lauren makes the moves.
+
+---
+
+## 2026-10-31 - 👑 Reina, your order is HOT, extra sauce, and your QB never showed up. Let me deliver. 😈🔥 (manual send, Week 8)
+
+Sent from Sean's Gmail to Ward.Lauren.89@gmail.com (Gmail message id 1a1946ac43e99390) after Sean approved the draft. Same heat level as the Week 7 emails (steamy and suggestive, non-graphic) with a food-delivery metaphor engine at Sean's request. HTML moves table included.
+
+Week 7 result: lost 71.6 to 96.4 vs Mango's Dad (record 2-5). She had made the Week 7 moves (Stroud, Brown, Gordon, Panthers D/ST); Panthers D/ST scored -3.0.
+
+Key findings (ESPN live, Week 8, league 632127067, team 19):
+- STANDINGS: Lauren 2-5, 10th of 12, PF 603.1, top 4 make playoffs; three teams at 5-2.
+- OPPONENT: The Broski Bruisers (team 21), 2-5. Lineup set well, no byes: Lawrence QB 20.8, Cook 17.0, Pollard 12.7, London 11.9, Moore Q 9.3, Loveland TE 7.1, Golden FLEX (Thu, banked 13.9), Butker K, WAS D/ST. Projected about 107.
+- EMERGENCY: QB C.J. Stroud on BYE (HOU) in her QB slot; Jayden Daniels (22.8) on her bench. As set projected about 70, win chance about 3%.
+- FIX SENT: Daniels for Stroud; add Tyler Warren (IND TE, 6.2) for Fannin (5.0), drop Brenton Strange. Projected about 93, win chance about 26% (24% from the QB swap alone).
+- Thursday banked: Watson 9.3, Panthers D/ST 5.0.
+- WATCH: George Pickens questionable (Godwin the backup, win chance about 23%). Lock before Sunday 2 PM ET; Daniels plays Sunday 9:20 PM ET.
+- Caveat: web search returned no 2026 injury news; statuses are ESPN's listings.
+
+Status: delivered. Awaiting whether Lauren makes the moves.
