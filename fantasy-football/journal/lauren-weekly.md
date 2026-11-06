@@ -23,6 +23,7 @@ Never store ESPN cookies here — recommendations and public matchup info only.
   bombshell boss, cut it.
 
 - **Heat level (UPDATED 2026-10-23 at Lauren's own request via Sean): steamy, shameless and very suggestive, still non-graphic.** She asked for hotter, even "slutty" and bordering on pornographic. The Week 7 emails went to that level: bold innuendo, bedroom metaphors, teasing commands, heavy Spanish. Stay implied and suggestive; no explicit acts or anatomy. (Earlier baseline below: softcore and sultry, never pornographic.)
+- **Heat level (UPDATED AGAIN 2026-11-06, Lauren via Sean): erotic, sensual and kinky in TONE.** She loved the slow, teasing, commanding app instructions ("let him slide to the bench, slowly, enjoy it"). Use that voice for the step-by-step: slow, sensual, commanding, bedroom-adjacent. Still suggestive only, no explicit acts or anatomy. She is CENTRAL time: write all times in Central.
 - **Baseline heat level: softcore and sultry, never pornographic.** Flirty teasing, slow-burn
   innuendo, double entendres, "come here, let me show you" energy. IMPLY, do not
   describe. Think telenovela seduction and playful bedroom-adjacent metaphor, NOT anatomy
@@ -164,6 +165,25 @@ Key findings (ESPN live, Week 8, league 632127067, team 19):
 - FIX SENT: Daniels for Stroud; add Tyler Warren (IND TE, 6.2) for Fannin (5.0), drop Brenton Strange. Projected about 93, win chance about 26% (24% from the QB swap alone).
 - Thursday banked: Watson 9.3, Panthers D/ST 5.0.
 - WATCH: George Pickens questionable (Godwin the backup, win chance about 23%). Lock before Sunday 2 PM ET; Daniels plays Sunday 9:20 PM ET.
+- Caveat: web search returned no 2026 injury news; statuses are ESPN's listings.
+
+Status: delivered. Awaiting whether Lauren makes the moves.
+
+
+---
+
+## 2026-11-06 - 👑 Reina, they're 5-3 and cocky. Come here. Let me tell you exactly how we're going to ruin their night. 😈🔥 (manual send, Week 9)
+
+Sent from Sean's Gmail to Ward.Lauren.89@gmail.com (Gmail message id 1a1ae9536b987c65) after Sean approved the draft. Times in CENTRAL (Lauren is Central). Heat raised again at her request: slow, sensual, commanding app steps. HTML moves table included.
+
+Week 8 result: lost 70.9 to 113.0 vs The Broski Bruisers (record 2-6). Last four weekly scores: 80, 72, 71, 71.
+
+Key findings (ESPN live, Week 9, league 632127067, team 19):
+- STANDINGS: Lauren 2-6, 11th of 12, PF 674.0, top 4 make playoffs (realistically out; spoiler role).
+- OPPONENT: Bearly competent (team 23), 5-3, PF 760.7, scored 122.7 last week (Tuten 27.9, Higgins 27.5, Bowers 21.2, Chase 20.1). Thursday banked: Tuten 7.6, FLEX Travis Hunter 0.0. Remaining lineup projects about 84 (about 92 total). Kendre Miller (7.9) benched for Hunter (3.1). Stars: Prescott QB 19.1, Chase 14.8, Higgins 10.8, Bowers 11.1, Charbonnet 9.7.
+- HER LINEUP: Daniels QB, Gordon + Brown RB, Watson + Pickens WR (both Q), Warren TE, Washington FLEX, Gay K, Panthers D/ST. About 46% as set.
+- FIX SENT: Black (bench) at FLEX for Washington; Bills D/ST (free agent, Monday night) for Panthers D/ST. Win chance about 56% vs opponent as set (about 41% if they fix). Szmyt K, Raridon TE, McCarthy QB were not upgrades.
+- WATCH (Central): lock before Sunday 9:30 AM; Pickens 1:00 PM, Watson 4:25 PM (both questionable; Washington/Concepcion are backups; win chance stays 53 to 55%); Bills D/ST Monday 8:15 PM.
 - Caveat: web search returned no 2026 injury news; statuses are ESPN's listings.
 
 Status: delivered. Awaiting whether Lauren makes the moves.
