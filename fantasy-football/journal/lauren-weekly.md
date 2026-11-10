@@ -187,3 +187,20 @@ Key findings (ESPN live, Week 9, league 632127067, team 19):
 - Caveat: web search returned no 2026 injury news; statuses are ESPN's listings.
 
 Status: delivered. Awaiting whether Lauren makes the moves.
+
+---
+
+## 2026-11-10 - 👑 Reina, you have an empty slot and I can’t stop thinking about it. Let me fill you in. 😈🔥 (manual send, Week 10)
+
+Sent from Sean's Gmail to Ward.Lauren.89@gmail.com (Gmail message id 1a1c73e784913ace) after Sean edited and approved the draft. Sean's edits: new subject line; moves-table headers "OUT (take it off. slowly)" / "IN (put it on. slower)"; closing line "make a 6-3 team feel every single inch". Times in Central. HTML moves table included.
+
+Week 9 result: lost 85.0 to 105.9 vs Bearly competent (record 2-7, last place, effectively eliminated).
+
+Key findings (ESPN live, Week 10, league 632127067, team 19):
+- OPPONENT: Commander in Chiefs (team 1), 6-3, PF 871.5. Josh Allen QB 24.3, McCaffrey 17.1, Hubbard 16.5, McMillan 10.9. Two starters on BYE and left in the lineup (Rome Odunze CHI, Jonah Coleman DEN); bench has Breece Hall 9.9, Addison 7.0. Projected about 92 as set, about 108 if fixed.
+- HER PROBLEM: second WR slot EMPTY (lineup had one WR), projecting about 80.
+- FIX SENT: add George Pickens (FA WR, questionable) to WR2, K Chris Boswell for Gay, Ravens D/ST (Mon night) for Bills D/ST; drops Holani, Gay, Bills D/ST. Projected about 91. Win chance about 48% if the opponent leaves their byes, about 20% if they fix.
+- Backup: KC Concepcion if Pickens is ruled out. Claim note: if the app shows Claim instead of +, place a claim (runs Wednesday) or add as FA by Thursday.
+- LOCKS (Central): Thu 8:15 PM Daniels; Sun 1:00 PM Gordon/Watson/Warren; Sun 4:25 PM Black/Pickens; Sun 8:20 PM Brown/Boswell; Mon 8:15 PM Ravens D/ST.
+
+Status: delivered. Awaiting whether Lauren makes the moves.
