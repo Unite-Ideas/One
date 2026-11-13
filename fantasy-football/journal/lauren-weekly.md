@@ -204,3 +204,18 @@ Key findings (ESPN live, Week 10, league 632127067, team 19):
 - LOCKS (Central): Thu 8:15 PM Daniels; Sun 1:00 PM Gordon/Watson/Warren; Sun 4:25 PM Black/Pickens; Sun 8:20 PM Brown/Boswell; Mon 8:15 PM Ravens D/ST.
 
 Status: delivered. Awaiting whether Lauren makes the moves.
+
+---
+
+## 2026-11-13 - 👑 Reina, you made me wait and someone else took what was yours. Let's not do that again. 😈🔥 (manual send, Week 10 follow-up)
+
+Sent from Sean's Gmail to Ward.Lauren.89@gmail.com (Gmail message id 1a1d2cb228f22979) after Sean edited and approved the draft (his edits: new opening paragraphs, "ready and waiting to please you", table header "IN (put him in. all the way.)", "Enjoy it"). Times in Central. HTML moves table included. Follow-up to the 11/10 send because she asked for another email.
+
+State (ESPN live, Week 10, league 632127067, team 19):
+- She made NONE of the 11/10 moves: WR2 slot still empty, Gay at K, Bills at D/ST. Pickens, Boswell and the Ravens D/ST were taken by other managers.
+- Daniels locked at 4.26 (Thursday night); Stroud (18.3 proj) stuck on the bench.
+- OPPONENT: Commander in Chiefs fixed their byes (Hall at FLEX, Addison at WR2), projecting about 108. Lauren about 72 even with fixes.
+- FIX SENT: Concepcion (bench) into WR2; add K Jason Sanders (NYJ, FA) for Gay; drop Holani. Win chance about 4% (2% as set; about 12% if the opponent runs cold). Told her honestly it is a long shot (about 1 in 25).
+- LOCKS (Central): Sun 1:00 PM Gordon/Watson/Warren/Concepcion/Sanders/Bills D/ST; Sun 4:25 PM Black; Sun 8:20 PM Brown.
+
+Status: delivered. Record 2-7, effectively eliminated. Next: set up Week 11 early.
