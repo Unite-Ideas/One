@@ -219,3 +219,20 @@ State (ESPN live, Week 10, league 632127067, team 19):
 - LOCKS (Central): Sun 1:00 PM Gordon/Watson/Warren/Concepcion/Sanders/Bills D/ST; Sun 4:25 PM Black; Sun 8:20 PM Brown.
 
 Status: delivered. Record 2-7, effectively eliminated. Next: set up Week 11 early.
+
+---
+
+## 2026-11-19 - 👑 Reina, you haven't been listening to me. I'm going to have to be firm with you. 😈🔥 (manual send, Week 11)
+
+Sent from Sean's Gmail to Ward.Lauren.89@gmail.com (Gmail message id 1a1f1c205cbe6888) after Sean wrote his own edits into the draft and approved it ("scolding / you haven't been listening" angle). Chart left exactly as drafted (headers "OUT (take it off. slowly)" / "IN (put him in. all the way.)"). Times in Central. HTML moves table included.
+
+Week 10 result: lost 102.0 to 116.1 vs Commander in Chiefs (she DID make the 11/13 moves: Concepcion at WR2, Sanders at K). Record 2-8, last place.
+
+Key findings (ESPN live, Week 11, league 632127067, team 19):
+- OPPONENT: Eaten Poover (team 17), 6-4, PF 921.7. Cam Ward QB 16.9, Jefferson 12.8, Montgomery 11.9, Parker Washington 11.4, Pickens 10.7, Boswell K 10.2. Weak RB2 (McGowan 4.9) and TE (Freiermuth 5.0). Projected about 88 as set. Bench mostly on bye.
+- HER PROBLEM: both starting WRs (Watson GB, Concepcion CLE) on BYE; as set about 69 points, win chance about 14%.
+- FIX SENT: Daniels -> Stroud at QB (plays Thu 8:15 PM CT); WR Ayomanor + Flournoy (FAs) for the bye WRs; TE Okonkwo for Warren (Mon night); Smith (questionable) at FLEX over Black; drops Godwin, M. Washington, Strange. Projected about 87, win chance about 40% (44% if opponent leaves lineup as set).
+- Fallback: Black back at FLEX if Smith is ruled out (win chance stays about 43%).
+- LOCKS (Central): Thu 8:15 PM Stroud/Warren; Sun 1:00 PM Gordon/Ayomanor/Flournoy/Smith/Bills; Sun 4:05 PM Sanders; Mon 8:15 PM Brown/Okonkwo.
+
+Status: delivered. Awaiting whether Lauren makes the moves before the Thursday lock.
